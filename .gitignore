@@ -25,3 +25,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# verify.mjs progress shots (SHOT_DIR)
+*.png
+!public/**/*.png

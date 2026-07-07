@@ -3,7 +3,9 @@
 import { chromium } from 'playwright'
 
 const BASE = 'http://localhost:5173'
-const SHOT_DIR = process.env.SHOT_DIR ?? '.'
+// progress screenshots land in the OS temp dir unless pointed elsewhere —
+// writing them into the repo root kept resurrecting stray PNGs
+const SHOT_DIR = process.env.SHOT_DIR ?? (await import('node:os')).tmpdir()
 let failures = 0
 const ok = (name, cond, extra = '') => {
   console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${extra ? ` — ${extra}` : ''}`)
