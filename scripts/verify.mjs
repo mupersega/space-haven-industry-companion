@@ -435,6 +435,13 @@ ok(
   !(await page.locator('.driver-popover-next-btn').isVisible().catch(() => false)),
 )
 ok('board starts empty', (await page.locator('.node-root').count()) === 0)
+// the walkthrough locks you in: stray clicks and escape don't eject you
+await page.mouse.click(800, 500)
+await page.waitForTimeout(350)
+ok('overlay click does not exit the walkthrough', (await page.locator('.driver-popover').count()) === 1)
+await page.keyboard.press('Escape')
+await page.waitForTimeout(350)
+ok('escape does not exit the walkthrough', (await page.locator('.driver-popover').count()) === 1)
 await page.locator('[data-item="rifle"]').click()
 await page.waitForTimeout(1300)
 ok(
@@ -461,9 +468,9 @@ ok(
 await page.locator('.fac-help').click()
 await page.waitForSelector('.driver-popover', { timeout: 3000 })
 ok('help button replays the walkthrough off-rails', await page.locator('.driver-popover-next-btn').isVisible())
-await page.keyboard.press('Escape')
+await page.locator('.driver-popover-close-btn').click()
 await page.waitForTimeout(300)
-ok('escape dismisses the walkthrough', (await page.locator('.driver-popover').count()) === 0)
+ok('the ✕ dismisses the walkthrough', (await page.locator('.driver-popover').count()) === 0)
 
 // --- 23. Console errors ---
 ok('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 5).join(' ;; '))

@@ -43,6 +43,13 @@ export function startTour(opts: { guided?: boolean } = {}) {
     doneBtnText: 'Fly safe',
     overlayOpacity: 0.6,
     stagePadding: 6,
+    // The ✕ is the only exit. allowClose must stay TRUE (false strips the
+    // ✕ from every popover in driver's step normalization); instead the
+    // actual escape hatches are neutralized: overlay clicks run a no-op
+    // instead of closing, and keyboard control (incl. Escape) is off.
+    allowClose: true,
+    overlayClickBehavior: () => {},
+    allowKeyboardControl: false,
     onDestroyed: () => document.removeEventListener('click', onRifleClick, true),
     steps: [
       {
