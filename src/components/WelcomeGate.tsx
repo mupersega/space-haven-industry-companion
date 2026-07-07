@@ -54,7 +54,14 @@ export function welcomeAcknowledged(): boolean {
 const BASE = import.meta.env.BASE_URL
 
 /** A ship in the scene: sprite, offset (%) from the fleet anchor, width (px),
- * parallax depth, float timing */
+ * parallax depth, float timing.
+ *
+ * depth = max px of mouse-parallax shift, derived physically: each ship's
+ * implied 3D distance comes from physical size ÷ rendered size (flagship
+ * ~150m at 900px → ~250m away; escorts 2.4-4.5× further), and parallax
+ * scales with 1/distance. The flagship gets 15px; everything else is its
+ * distance ratio of that. True head-sway realism would be ~3px — 15 keeps
+ * the effect legible while staying subtle. */
 interface ShipSpec {
   src: string
   dx: number
@@ -75,23 +82,23 @@ interface ShipSpec {
 // the key-art arrangement, shifted a third of the frame right so the fleet
 // clears the logo and warning copy on the left
 const SHIPS: ShipSpec[] = [
-  // freighter riding the planet's lit limb
-  { src: 'ship-hf1', dx: 18, dy: 1, width: 190, depth: 28, drift: 13, delay: 3.0, flip: true },
+  // freighter running beneath the flagship's keel
+  { src: 'ship-hf1', dx: -17, dy: 8, width: 160, depth: 5, drift: 13, delay: 3.0, flip: true },
   // tiny scout running point, front and centre of the fleet
-  { src: 'ship-fs3', dx: 12, dy: 16, width: 46, depth: 12, drift: 11, delay: 0.5 },
+  { src: 'ship-fs3', dx: 12, dy: 16, width: 46, depth: 4, drift: 11, delay: 0.5 },
   // small stray off the port beam
-  { src: 'ship-fs2', dx: -21, dy: 19, width: 56, depth: 14, drift: 13, delay: 2.1 },
+  { src: 'ship-fs2', dx: -21, dy: 19, width: 56, depth: 5, drift: 13, delay: 2.1 },
   // escort below the flagship's engines, on the dark face
-  { src: 'ship-hf2', dx: -5, dy: 23, width: 90, depth: 22, drift: 12, delay: 4.2, flip: true },
+  { src: 'ship-hf2', dx: -5, dy: 23, width: 90, depth: 4, drift: 12, delay: 4.2, flip: true },
   // chunky escort, bottom left of the group
-  { src: 'ship-hf1', dx: -14, dy: 30, width: 140, depth: 30, drift: 14, delay: 5.5, flip: true },
+  { src: 'ship-hf1', dx: -14, dy: 30, width: 140, depth: 5, drift: 14, delay: 5.5, flip: true },
   // trailing escort, bottom middle
-  { src: 'ship-hf2', dx: 14, dy: 35, width: 120, depth: 26, drift: 12, delay: 1.6, flip: true },
+  { src: 'ship-hf2', dx: 14, dy: 35, width: 120, depth: 5, drift: 12, delay: 1.6, flip: true },
   // distant pair, small against the far side
-  { src: 'ship-fs3', dx: 24, dy: 18, width: 44, depth: 10, drift: 10, delay: 2.8 },
-  { src: 'ship-fs2', dx: 28, dy: 24, width: 40, depth: 10, drift: 11, delay: 4.9 },
+  { src: 'ship-fs3', dx: 24, dy: 18, width: 44, depth: 4, drift: 10, delay: 2.8 },
+  { src: 'ship-fs2', dx: 28, dy: 24, width: 40, depth: 3, drift: 11, delay: 4.9 },
   // the flagship — vast and nearest, crossing in front of the planet
-  { src: 'ship-colony', dx: -17, dy: -14, width: 900, depth: 46, drift: 16, delay: 0 },
+  { src: 'ship-colony', dx: -17, dy: -14, width: 900, depth: 15, drift: 16, delay: 0 },
 ]
 
 /**
@@ -219,18 +226,26 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
         <img className="welcome-logo" src={`${BASE}scene/logo.png`} alt="Space Haven" draggable={false} />
         <div className="welcome-sub">Production Ledger</div>
         <p className="welcome-warning">
-          <strong>Fair warning: numbers ahead.</strong> This tool lays the game's economy bare — exact
-          recipes, true trade values, and the margin on every rifle you'll ever fabricate. That knowledge
-          is discovery Space Haven means you to earn out in the black, and seeing it here first can dim
-          the wonder of it.
+          <strong>Fair warning: numbers ahead.</strong> This tool lays the game's economy bare: exact
+          recipes, true trade values, and the margin on every rifle you'll ever fabricate. Space Haven
+          expects you to earn that knowledge out in the black, and seeing it all laid out here first can
+          dim the wonder of discovering it yourself.
         </p>
         <p className="welcome-warning welcome-soft">
-          New to the game? Consider holding off and finding out the hard way — it's worth it.
+          New to the game? Consider holding off and finding out the hard way. It's worth it.
         </p>
         <div className="welcome-actions">
           <button className="welcome-enter" onClick={accept}>
-            I know what I'm doing — board
+            I know what I'm doing, board
           </button>
+          <label className="welcome-remember">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(ev) => setRemember(ev.target.checked)}
+            />
+            Remember for next time
+          </label>
         </div>
       </div>
     </div>
