@@ -29,7 +29,7 @@ export const BLEND_CSS: Record<ThrusterGlow['blend'], string> = {
 export type GlowMap = Record<string, ThrusterGlow[]>
 
 export const SHIP_SRCS = ['ship-colony', 'ship-hf1', 'ship-hf2', 'ship-fs2', 'ship-fs3']
-const SWATCHES = ['#14e8cf', '#66ff21', '#ffa514', '#ff7a14', '#2979ff', '#ff3d55', '#f5f9ff']
+const SWATCHES = ['#28e2cc', '#66ff21', '#ffa514', '#ff7a14', '#2979ff', '#ff3d55', '#f5f9ff']
 const BASE = import.meta.env.BASE_URL
 
 function FlameIcon() {
@@ -55,7 +55,7 @@ const TYPES = ['jet', 'round', 'boost'] as const
 export function GlowEditor({ glows, onChange }: GlowEditorProps) {
   const [open, setOpen] = useState(false)
   const [ship, setShip] = useState(SHIP_SRCS[0])
-  const [color, setColor] = useState('#14e8cf')
+  const [color, setColor] = useState('#28e2cc')
   const [size, setSize] = useState(0.05)
   const [shape, setShape] = useState<ThrusterGlow['shape']>('jet')
   const [layer, setLayer] = useState<'below' | 'above'>('below')
@@ -164,14 +164,15 @@ export function GlowEditor({ glows, onChange }: GlowEditorProps) {
                           top: `${m.y * 100}%`,
                           width: `${m.size * 100 * (m.shape === 'jet' ? 2.2 : 1)}%`,
                           zIndex: m.layer === 'below' ? 0 : 2,
-                          animationDelay: `${-((i * 0.53) % 1.7).toFixed(2)}s`,
                           mixBlendMode: BLEND_CSS[m.blend ?? 'normal'] as React.CSSProperties['mixBlendMode'],
                           '--glow': m.color,
                           '--ang': `${m.angle ?? 0}deg`,
                           '--gop': m.opacity ?? 1,
                         } as React.CSSProperties
                       }
-                    />
+                    >
+                      <span className="wg-glow-core" />
+                    </span>
                   ),
                 )}
                 {marks.map((m, i) =>

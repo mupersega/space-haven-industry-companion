@@ -17,7 +17,8 @@ function loadGlows(): GlowMap {
     // marks authored with the old washed-out swatches pick up the saturated
     // colors without re-authoring
     const RECOLOR: Record<string, string> = {
-      '#7de0d0': '#14e8cf',
+      '#7de0d0': '#28e2cc',
+      '#14e8cf': '#28e2cc',
       '#8dff57': '#66ff21',
       '#ffb454': '#ffa514',
       '#ff9a54': '#ff7a14',
@@ -79,18 +80,18 @@ const SHIPS: ShipSpec[] = [
   // tiny scout running point, front and centre of the fleet
   { src: 'ship-fs3', dx: 12, dy: 16, width: 46, depth: 12, drift: 11, delay: 0.5 },
   // small stray off the port beam
-  { src: 'ship-fs2', dx: -14, dy: 19, width: 56, depth: 14, drift: 13, delay: 2.1 },
+  { src: 'ship-fs2', dx: -21, dy: 19, width: 56, depth: 14, drift: 13, delay: 2.1 },
   // escort below the flagship's engines, on the dark face
   { src: 'ship-hf2', dx: -5, dy: 23, width: 90, depth: 22, drift: 12, delay: 4.2, flip: true },
   // chunky escort, bottom left of the group
   { src: 'ship-hf1', dx: -14, dy: 30, width: 140, depth: 30, drift: 14, delay: 5.5, flip: true },
   // trailing escort, bottom middle
-  { src: 'ship-hf2', dx: 18, dy: 31, width: 120, depth: 26, drift: 12, delay: 1.6, flip: true },
+  { src: 'ship-hf2', dx: 14, dy: 35, width: 120, depth: 26, drift: 12, delay: 1.6, flip: true },
   // distant pair, small against the far side
-  { src: 'ship-fs3', dx: 34, dy: 18, width: 44, depth: 10, drift: 10, delay: 2.8 },
-  { src: 'ship-fs2', dx: 38, dy: 24, width: 40, depth: 10, drift: 11, delay: 4.9 },
+  { src: 'ship-fs3', dx: 24, dy: 18, width: 44, depth: 10, drift: 10, delay: 2.8 },
+  { src: 'ship-fs2', dx: 28, dy: 24, width: 40, depth: 10, drift: 11, delay: 4.9 },
   // the flagship — vast and nearest, crossing in front of the planet
-  { src: 'ship-colony', dx: -17, dy: -22, width: 900, depth: 46, drift: 16, delay: 0 },
+  { src: 'ship-colony', dx: -17, dy: -14, width: 900, depth: 46, drift: 16, delay: 0 },
 ]
 
 /**
@@ -111,6 +112,37 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
   useEffect(() => {
     localStorage.setItem(GLOW_KEY, JSON.stringify(glows))
   }, [glows])
+
+  // the shimmer ticker: engine flicker and boost breathing at ~12Hz from a
+  // single loop. Ambient FX don't need 60fps — and a second concurrent CSS
+  // animation family alongside the drift forces Chromium off the compositor
+  // fast path into main-thread frames, which is what spins laptop fans.
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    // setInterval, NOT a requestAnimationFrame loop: an rAF loop forces the
+    // browser to produce a full frame every vsync even when the callback
+    // does nothing — the frames themselves were the CPU cost. This way the
+    // page only renders ~12 frames/s for the shimmer.
+    const tick = () => {
+      const t = performance.now() / 1000
+      const cores = document.querySelectorAll<HTMLElement>('.wg-glow-core')
+      for (let i = 0; i < cores.length; i++) {
+        // uneven two-sine flicker, phase-scattered per element
+        const s = i * 2.399
+        const v = 0.86 + 0.13 * Math.sin(t * 3.7 + s) * Math.sin(t * 7.3 + s * 1.7)
+        cores[i].style.opacity = v.toFixed(3)
+      }
+      const boosts = document.querySelectorAll<HTMLElement>('.wg-ship-boost')
+      for (let i = 0; i < boosts.length; i++) {
+        // slow independent breathe per boost
+        const s = i * 1.618
+        const v = 0.7 + 0.3 * Math.sin(t * (0.9 + (i % 5) * 0.13) + s)
+        boosts[i].style.opacity = v.toFixed(3)
+      }
+    }
+    const timer = setInterval(tick, 84)
+    return () => clearInterval(timer)
+  }, [])
 
   // mouse parallax: lerped CSS vars, layers translate by var * depth
   useEffect(() => {
@@ -144,7 +176,8 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
   const accept = () => {
     localStorage.setItem(WELCOME_KEY, 'ack')
     setExiting(true)
-    setTimeout(onEnter, 650)
+    // fire immediately: the app mounts beneath and the exit fade reveals it
+    onEnter()
   }
 
   return (

@@ -1275,6 +1275,7 @@ body {
   /* slow ambient drift so the scene breathes even with the mouse still */
   .wg-ambient {
     animation: wg-sky 75s ease-in-out infinite alternate;
+    will-change: transform;
   }
 }
 @keyframes wg-sky {
@@ -1516,10 +1517,21 @@ body {
   image-rendering: pixelated;
   filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.6));
 }
+/* The outer ship carries every var()-derived style STATICALLY (flip,
+   position); the inner wrapper runs the drift animation with literal
+   keyframes. Custom properties inside @keyframes force the animation off
+   the compositor onto the main thread — that split is the perf fix. */
 .wg-ship {
   position: absolute;
   height: auto;
   transform: scaleX(var(--flip, 1));
+}
+.wg-ship-inner {
+  position: relative;
+  width: 100%;
+  /* promote to a compositor layer: the drift then animates without any
+     per-frame main-thread paint */
+  will-change: transform;
 }
 .wg-ship-canvas {
   display: block;
@@ -1533,27 +1545,34 @@ body {
 }
 .wg-ship-boost {
   position: absolute;
-  inset: 0;
-  width: 100%;
   height: auto;
   z-index: 1;
   pointer-events: none;
-  /* the boosted pixels breathe over the unboosted hull beneath */
-  animation: boost-breathe 3s ease-in-out infinite alternate;
+  will-change: opacity;
+  /* the boosted pixels breathe over the unboosted hull beneath — opacity
+     driven by the shimmer ticker; left/top/width inline from the crop rect */
 }
-@keyframes boost-breathe {
-  from {
-    opacity: 0.4;
-  }
-  to {
-    opacity: 1;
-  }
-}
+/* Outer span: everything var()-derived, all STATIC (position, vector
+   rotation, authored opacity, blend). Inner core: the gradients plus the
+   flicker animation with literal keyframes — compositor-only. */
 .wg-glow {
   position: absolute;
   transform: translate(-50%, -50%) rotate(var(--ang, 0deg));
   pointer-events: none;
   aspect-ratio: 1;
+  opacity: var(--gop, 1);
+}
+.wg-glow.jet {
+  aspect-ratio: 2.6 / 1;
+}
+.wg-glow-core {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* own compositor layer; opacity is driven by the low-Hz shimmer ticker
+     in WelcomeGate — a second concurrent CSS animation family alongside
+     wg-drift forces Chromium into main-thread frames at 60fps */
+  will-change: opacity;
   /* layered off-center lobes so the glow is ragged, not a clean ellipse.
      No border-radius and every lobe fades out INSIDE the box — a lobe
      reaching the box edge (or an ellipse clip) prints a hard line. */
@@ -1561,57 +1580,29 @@ body {
     radial-gradient(38% 36% at 44% 48%, rgba(255, 255, 255, 0.9), var(--glow) 34%, color-mix(in srgb, var(--glow) 40%, transparent) 62%, transparent 92%),
     radial-gradient(32% 34% at 58% 56%, color-mix(in srgb, var(--glow) 55%, transparent), color-mix(in srgb, var(--glow) 22%, transparent) 55%, transparent 90%);
   filter: blur(0.5px);
-  animation: glow-flicker 1.7s ease-in-out infinite;
 }
-.wg-glow.jet {
-  aspect-ratio: 2.6 / 1;
+.wg-glow.jet .wg-glow-core {
   /* hot core at the nozzle, tapering ragged tail down the vector */
   background:
     radial-gradient(24% 38% at 26% 50%, rgba(255, 255, 255, 0.95), var(--glow) 36%, color-mix(in srgb, var(--glow) 42%, transparent) 64%, transparent 92%),
     radial-gradient(34% 24% at 52% 47%, color-mix(in srgb, var(--glow) 55%, transparent), color-mix(in srgb, var(--glow) 22%, transparent) 58%, transparent 90%),
     radial-gradient(24% 14% at 74% 54%, color-mix(in srgb, var(--glow) 40%, transparent), transparent 88%);
 }
-/* flicker rides on top of the authored base opacity (--gop) */
-@keyframes glow-flicker {
-  0% {
-    opacity: calc(0.78 * var(--gop, 1));
-    filter: blur(0.4px);
-  }
-  17% {
-    opacity: calc(0.97 * var(--gop, 1));
-  }
-  33% {
-    opacity: calc(0.84 * var(--gop, 1));
-  }
-  49% {
-    opacity: calc(1 * var(--gop, 1));
-    filter: blur(0.8px);
-  }
-  66% {
-    opacity: calc(0.75 * var(--gop, 1));
-  }
-  82% {
-    opacity: calc(0.93 * var(--gop, 1));
-  }
-  100% {
-    opacity: calc(0.78 * var(--gop, 1));
-    filter: blur(0.4px);
-  }
-}
 @media (prefers-reduced-motion: no-preference) {
-  .wg-ship {
+  .wg-ship-inner {
     animation-name: wg-drift;
     animation-timing-function: ease-in-out;
     animation-iteration-count: infinite;
     animation-direction: alternate;
   }
 }
+/* literal keyframes only — no var() — so the drift stays on the compositor */
 @keyframes wg-drift {
   from {
-    transform: translateY(-5px) scaleX(var(--flip, 1));
+    transform: translateY(-5px);
   }
   to {
-    transform: translateY(5px) scaleX(var(--flip, 1));
+    transform: translateY(5px);
   }
 }
 .welcome-content {
@@ -1718,6 +1709,15 @@ body {
 .react-flow__edge.animated .react-flow__edge-path {
   stroke: var(--amber);
   stroke-width: 2;
+  /* React Flow's marching dashes animate stroke-dashoffset — main-thread
+     only, a repaint EVERY frame, forever. steps() keeps the march but
+     paints ~7 times a second instead of 60. */
+  animation: shc-dashdraw 1.4s steps(10) infinite;
+}
+@keyframes shc-dashdraw {
+  to {
+    stroke-dashoffset: -20;
+  }
 }
 /* salvage yields: rust dashed, flowing OUT of scrap */
 .react-flow__edge.salvage-edge .react-flow__edge-path {

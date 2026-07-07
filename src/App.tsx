@@ -78,6 +78,12 @@ export default function App() {
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [worthId, setWorthId] = useState<string | null>(null)
   const [welcomed, setWelcomed] = useState(welcomeAcknowledged)
+  const [gateGone, setGateGone] = useState(welcomed)
+  const enterApp = () => {
+    setWelcomed(true)
+    // the gate fades for 650ms over the freshly mounted calculator
+    setTimeout(() => setGateGone(true), 700)
+  }
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
@@ -321,8 +327,14 @@ export default function App() {
     return m
   }, [prices, buySet])
 
+  // First visit: the gate alone. Mounting the calculator beneath it burns
+  // CPU behind an opaque overlay (React Flow's animated edges repaint every
+  // frame). The calculator mounts the moment "board" is clicked so the
+  // gate's exit fade reveals it — a crossfade, not a pop.
   return (
     <div className="app">
+      {welcomed && (
+        <>
       {hoverId && boardIds.has(hoverId) && (
         <style>{`.react-flow__node[data-id="${CSS.escape(hoverId)}"] .node{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal),0 0 22px rgba(69,213,194,.35)}`}</style>
       )}
@@ -526,7 +538,9 @@ export default function App() {
       {worthId && (
         <WorthModal materialId={worthId} prices={prices} buySet={buySet} onClose={() => setWorthId(null)} />
       )}
-      {!welcomed && <WelcomeGate onEnter={() => setWelcomed(true)} />}
+        </>
+      )}
+      {!gateGone && <WelcomeGate onEnter={enterApp} />}
     </div>
   )
 }

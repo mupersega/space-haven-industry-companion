@@ -646,43 +646,46 @@ function paintPlanet(cv: HTMLCanvasElement, brushes: Brushes, _rnd: () => number
 
   g.restore()
 
-  // --- atmosphere: not one clean band. Painted as many short arc segments
-  // whose color rides the light — warm white at the sun-nearest point,
-  // through cyan, into deep blue as it wraps toward the night side. The
-  // band breathes via SMOOTH angular modulation: per-segment random jitter
-  // (with overlapping strokes) reads as geometric facets on the rim.
+  // --- atmosphere: each band is ONE continuous arc stroked with a conic
+  // gradient — color rides the light (warm white at the sun-nearest point,
+  // through cyan, into deep blue toward the night side) and the band
+  // breathes via smooth sine modulation baked into the gradient's alpha
+  // stops. One stroke per pass means no segment seams: the old abutting-
+  // segments approach doubled its alpha at every joint once the band got
+  // wide enough to see.
   const WARM: [number, number, number] = [255, 233, 195]
   const atmoColor = (prox: number) =>
     prox > 0.68
       ? lerpColor(pal.atmo, WARM, (prox - 0.68) / 0.32)
       : lerpColor(pal.atmoDeep, pal.atmo, prox / 0.68)
-  const SEGS = 280
   const wrap = 2.55 // radians each side of the sun point
-  const seg = (wrap * 2) / SEGS
   const bphase1 = sr() * Math.PI * 2
   const bphase2 = sr() * Math.PI * 2
   const passes: Array<{ r: number; w: number; a: number; jitter: boolean }> = [
-    { r: R - 2.5, w: 4.6, a: 0.11 * p.halo, jitter: true }, // inner scatter, on the disc
-    { r: R + 0.4, w: 1.5, a: 0.7 * p.rim, jitter: false }, // the crisp line — continuous
-    { r: R + 2.4, w: 2.6, a: 0.1 * p.halo, jitter: true }, // outer sliver
+    { r: R - 3.5, w: 7, a: 0.11 * p.halo, jitter: true }, // inner scatter, on the disc
+    { r: R + 0.4, w: 2, a: 0.7 * p.rim, jitter: false }, // the crisp line — continuous
+    { r: R + 3.2, w: 4.2, a: 0.1 * p.halo, jitter: true }, // outer sliver
   ]
+  const STOPS = 140
+  const span = (wrap * 2) / (Math.PI * 2) // band's share of the full turn
   for (const pass of passes) {
-    for (let i = 0; i < SEGS; i++) {
-      const rel = -wrap + (i + 0.5) * seg
-      const ang = sunAng + rel
+    const grad = g.createConicGradient(sunAng - wrap, cx, cy)
+    for (let i = 0; i <= STOPS; i++) {
+      const rel = -wrap + (i / STOPS) * wrap * 2
       const prox = Math.max(0, Math.cos(rel * 0.62))
-      if (prox < 0.03) continue
       const breathA = pass.jitter
         ? 0.82 + 0.18 * Math.sin(rel * 7.3 + bphase1) + 0.1 * Math.sin(rel * 16.7 + bphase2)
         : 1
-      const breathW = pass.jitter ? 0.88 + 0.22 * Math.sin(rel * 5.1 + bphase2) : 1
-      g.strokeStyle = `rgba(${atmoColor(prox)}, ${clamp01(pass.a * (0.18 + 0.82 * prox) * breathA)})`
-      g.lineWidth = pass.w * breathW
-      g.beginPath()
-      // near-exact abutment — big overlaps double the alpha at every seam
-      g.arc(cx, cy, pass.r, ang - seg * 0.53, ang + seg * 0.53)
-      g.stroke()
+      const a = prox < 0.03 ? 0 : clamp01(pass.a * (0.18 + 0.82 * prox) * breathA)
+      grad.addColorStop((i / STOPS) * span, `rgba(${atmoColor(prox)}, ${a})`)
     }
+    // the rest of the turn (behind the night side) stays fully transparent
+    grad.addColorStop(Math.min(1, span + 0.002), 'rgba(0, 0, 0, 0)')
+    g.strokeStyle = grad
+    g.lineWidth = pass.w
+    g.beginPath()
+    g.arc(cx, cy, pass.r, sunAng - wrap, sunAng + wrap)
+    g.stroke()
   }
 }
 

@@ -9,7 +9,7 @@ import { BLEND_CSS, type ThrusterGlow } from './GlowEditor'
  *    (engine flares, windows, running lights) are extracted, keeping their
  *    own color, and stacked additively in a small ring: the ship's own
  *    lights glow. Dark hull stays dark.
- * 2. Sun-facing rim light — the ship's silhouette tinted cold blue-white, minus
+ * 2. Sun-facing rim light — the ship's silhouette tinted sun-orange, minus
  *    the same silhouette shifted away from the sun: what survives is a thin
  *    fringe only on edges that geometrically face the sun (interior cutouts
  *    included).
@@ -21,9 +21,8 @@ import { BLEND_CSS, type ThrusterGlow } from './GlowEditor'
  */
 
 const PAD = 8 // room for glow bleed past the sprite bounds
-// rim-light color: cold star-light blue-white, deliberately NOT the warm
-// tint of the sun disc — hulls catch hard cold light in the game's key art
-const RIM_TINT: [number, number, number] = [188, 216, 255]
+// rim-light color: warm, matched to the sun disc — the hulls catch sunlight
+const RIM_TINT: [number, number, number] = [255, 205, 140]
 const BLOOM_THRESHOLD = 138
 const RIM_ALPHA = 0.5
 const BLOOM_CORE = 0.5
@@ -112,13 +111,28 @@ function applyBoosts(d: Uint8ClampedArray, W: number, H: number, boosts: Thruste
 
 const dimChannel = (c: number, lum: number) => (c * 0.9 + lum * 0.1) * 0.78
 
-/** One boost mark rendered to its own overlay canvas — each canvas breathes
+const BOOST_MARGIN = 8
+
+/** The pixel rect a boost can touch, in unpadded sprite coordinates. The
+ * overlay canvas is cropped to this — a full-sprite canvas per boost kept
+ * seven flagship-sized layers breathing in the compositor. */
+export function boostRect(bo: ThrusterGlow, W: number, H: number) {
+  const rad = Math.max(2, bo.size * W)
+  const x0 = Math.max(0, Math.floor(bo.x * W - rad - BOOST_MARGIN))
+  const y0 = Math.max(0, Math.floor(bo.y * H - rad - BOOST_MARGIN))
+  const x1 = Math.min(W, Math.ceil(bo.x * W + rad + BOOST_MARGIN))
+  const y1 = Math.min(H, Math.ceil(bo.y * H + rad + BOOST_MARGIN))
+  return { x0, y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) }
+}
+
+/** One boost mark rendered to its own small overlay canvas — each breathes
  * on its own CSS phase, so separate boosts pulse independently. */
 function renderBoostOverlay(cv: HTMLCanvasElement, img: HTMLImageElement, boost: ThrusterGlow) {
   const W = img.naturalWidth
   const H = img.naturalHeight
-  cv.width = W + PAD * 2
-  cv.height = H + PAD * 2
+  const r = boostRect(boost, W, H)
+  cv.width = r.w
+  cv.height = r.h
   const scratch = document.createElement('canvas')
   scratch.width = W
   scratch.height = H
@@ -128,22 +142,20 @@ function renderBoostOverlay(cv: HTMLCanvasElement, img: HTMLImageElement, boost:
   const d = src.data
   const boosted = new Uint8ClampedArray(d)
   applyBoosts(boosted, W, H, [boost])
-  const overlay = sg.createImageData(W, H)
-  for (let i = 0; i < d.length; i += 4) {
-    if (boosted[i] === d[i] && boosted[i + 1] === d[i + 1] && boosted[i + 2] === d[i + 2]) continue
-    const lum = 0.2126 * boosted[i] + 0.7152 * boosted[i + 1] + 0.0722 * boosted[i + 2]
-    overlay.data[i] = dimChannel(boosted[i], lum)
-    overlay.data[i + 1] = dimChannel(boosted[i + 1], lum)
-    overlay.data[i + 2] = dimChannel(boosted[i + 2], lum)
-    overlay.data[i + 3] = d[i + 3]
+  const overlay = sg.createImageData(r.w, r.h)
+  for (let y = 0; y < r.h; y++) {
+    for (let x = 0; x < r.w; x++) {
+      const si = ((r.y0 + y) * W + r.x0 + x) * 4
+      if (boosted[si] === d[si] && boosted[si + 1] === d[si + 1] && boosted[si + 2] === d[si + 2]) continue
+      const lum = 0.2126 * boosted[si] + 0.7152 * boosted[si + 1] + 0.0722 * boosted[si + 2]
+      const oi = (y * r.w + x) * 4
+      overlay.data[oi] = dimChannel(boosted[si], lum)
+      overlay.data[oi + 1] = dimChannel(boosted[si + 1], lum)
+      overlay.data[oi + 2] = dimChannel(boosted[si + 2], lum)
+      overlay.data[oi + 3] = d[si + 3]
+    }
   }
-  const oc = document.createElement('canvas')
-  oc.width = W
-  oc.height = H
-  oc.getContext('2d')!.putImageData(overlay, 0, 0)
-  const g = cv.getContext('2d')!
-  g.clearRect(0, 0, cv.width, cv.height)
-  g.drawImage(oc, PAD, PAD)
+  cv.getContext('2d')!.putImageData(overlay, 0, 0)
 }
 
 function renderShip(cv: HTMLCanvasElement, img: HTMLImageElement, sdx: number, sdy: number) {
@@ -263,16 +275,28 @@ export function ShipSprite({ src, width, flip, drift, delay, left, top, sunDx, s
       if (!live || !ref.current) return
       // the element is displayed mirrored, so mirror the sun to compensate
       renderShip(ref.current, img, flip ? -sunDx : sunDx, sunDy)
-      for (const [i, bo] of (JSON.parse(boostKey) as ThrusterGlow[]).entries()) {
-        const cv = boostRefs.current[i]
-        if (cv) renderBoostOverlay(cv, img, bo)
-      }
       setDims({ w: img.naturalWidth, h: img.naturalHeight })
     })
     return () => {
       live = false
     }
-  }, [src, flip, sunDx, sunDy, boostKey])
+  }, [src, flip, sunDx, sunDy])
+
+  // boost canvases mount once dims are known; draw them in a second pass
+  useEffect(() => {
+    if (!dims) return
+    let live = true
+    void loadImage(src).then((img) => {
+      if (!live) return
+      for (const [i, bo] of (JSON.parse(boostKey) as ThrusterGlow[]).entries()) {
+        const cv = boostRefs.current[i]
+        if (cv) renderBoostOverlay(cv, img, bo)
+      }
+    })
+    return () => {
+      live = false
+    }
+  }, [src, dims, boostKey])
 
   // the canvas is padded PAD px around the sprite; map sprite-fraction glow
   // coords into the padded box
@@ -289,28 +313,37 @@ export function ShipSprite({ src, width, flip, drift, delay, left, top, sunDx, s
           top: `${top}%`,
           width: width * padScale,
           maxWidth: `${Math.round((width * padScale) / 14)}vw`,
-          animationDuration: `${drift}s`,
-          animationDelay: `${delay}s`,
           '--flip': flip ? -1 : 1,
         } as React.CSSProperties
       }
     >
+      {/* the drift animation lives on this inner wrapper so its keyframes
+          stay var()-free and run on the compositor */}
+      <div
+        className="wg-ship-inner"
+        style={{ animationDuration: `${drift}s`, animationDelay: `${delay}s` }}
+      >
       <canvas ref={ref} className="wg-ship-canvas" />
-      {boosts.map((bo, i) => (
-        <canvas
-          key={`b${i}`}
-          ref={(el) => {
-            boostRefs.current[i] = el
-          }}
-          className="wg-ship-boost"
-          style={{
-            // every boost breathes on its own phase and tempo — desynced by
-            // mark index and the ship's position so no two pulse together
-            animationDuration: `${(2.6 + ((i * 0.83 + left * 0.11) % 1.6)).toFixed(2)}s`,
-            animationDelay: `${(-((i * 1.37 + top * 0.19 + bo.x * 2) % 2.6)).toFixed(2)}s`,
-          }}
-        />
-      ))}
+      {dims &&
+        boosts.map((bo, i) => {
+          const r = boostRect(bo, dims.w, dims.h)
+          return (
+            <canvas
+              key={`b${i}`}
+              ref={(el) => {
+                boostRefs.current[i] = el
+              }}
+              className="wg-ship-boost"
+              style={{
+                // cropped to the boosted region — a small layer, not a copy
+                // of the whole ship
+                left: `${((PAD + r.x0) / bw) * 100}%`,
+                top: `${((PAD + r.y0) / bh) * 100}%`,
+                width: `${(r.w / bw) * 100}%`,
+              }}
+            />
+          )
+        })}
       {dims &&
         overlays.map((gl, i) => (
           <span
@@ -322,16 +355,18 @@ export function ShipSprite({ src, width, flip, drift, delay, left, top, sunDx, s
                 top: `${((PAD + gl.y * dims.h) / bh) * 100}%`,
                 width: `${gl.size * (dims.w / bw) * 100 * (gl.shape === 'jet' ? 2.2 : 1)}%`,
                 zIndex: gl.layer === 'below' ? 0 : 2,
-                // stagger the flicker so engines don't pulse in unison
-                animationDelay: `${-((i * 0.53) % 1.7).toFixed(2)}s`,
                 mixBlendMode: BLEND_CSS[gl.blend ?? 'normal'] as React.CSSProperties['mixBlendMode'],
                 '--glow': gl.color,
                 '--ang': `${gl.angle ?? 0}deg`,
                 '--gop': gl.opacity ?? 1,
               } as React.CSSProperties
             }
-          />
+          >
+            {/* opacity driven by the gate's shimmer ticker */}
+            <span className="wg-glow-core" />
+          </span>
         ))}
+      </div>
     </div>
   )
 }
