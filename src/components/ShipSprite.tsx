@@ -116,7 +116,7 @@ const BOOST_MARGIN = 8
 /** The pixel rect a boost can touch, in unpadded sprite coordinates. The
  * overlay canvas is cropped to this — a full-sprite canvas per boost kept
  * seven flagship-sized layers breathing in the compositor. */
-export function boostRect(bo: ThrusterGlow, W: number, H: number) {
+function boostRect(bo: ThrusterGlow, W: number, H: number) {
   const rad = Math.max(2, bo.size * W)
   const x0 = Math.max(0, Math.floor(bo.x * W - rad - BOOST_MARGIN))
   const y0 = Math.max(0, Math.floor(bo.y * H - rad - BOOST_MARGIN))

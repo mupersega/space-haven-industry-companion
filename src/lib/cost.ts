@@ -88,7 +88,7 @@ export function buildChain(rootIds: string[], buySet: ReadonlySet<string>): Chai
 
 export type PriceMap = Readonly<Record<string, number>>
 
-export function priceOf(id: string, prices: PriceMap): number {
+function priceOf(id: string, prices: PriceMap): number {
   return prices[id] ?? ITEMS[id]?.defaultPrice ?? 0
 }
 

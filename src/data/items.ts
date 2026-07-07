@@ -355,7 +355,6 @@ function fab(id: string, name: string, industry: number, recipe: Ingredient[], d
 }
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(defs.map((d) => [d.id, d]))
-export const ALL_ITEMS: ItemDef[] = defs
 export const CRAFTABLE_ITEMS: ItemDef[] = defs.filter((d) => d.recipe)
 
 /** Everything addable to the board: craftables plus market-priced goods (raw, grown, trade). */

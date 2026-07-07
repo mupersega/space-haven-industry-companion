@@ -17,7 +17,7 @@ function HammerIcon() {
   )
 }
 
-export function FacilityImage({ name }: { name: string }) {
+function FacilityImage({ name }: { name: string }) {
   const [failed, setFailed] = useState(false)
   if (failed) {
     const initials = name

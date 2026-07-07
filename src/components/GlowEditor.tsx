@@ -28,7 +28,7 @@ export const BLEND_CSS: Record<ThrusterGlow['blend'], string> = {
 }
 export type GlowMap = Record<string, ThrusterGlow[]>
 
-export const SHIP_SRCS = ['ship-colony', 'ship-hf1', 'ship-hf2', 'ship-fs2', 'ship-fs3']
+const SHIP_SRCS = ['ship-colony', 'ship-hf1', 'ship-hf2', 'ship-fs2', 'ship-fs3']
 const SWATCHES = ['#28e2cc', '#66ff21', '#ffa514', '#ff7a14', '#2979ff', '#ff3d55', '#f5f9ff']
 const BASE = import.meta.env.BASE_URL
 
