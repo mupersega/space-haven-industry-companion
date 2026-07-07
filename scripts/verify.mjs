@@ -50,15 +50,22 @@ ok(
   }),
 )
 ok('a fleet of ships', (await page.locator('.wg-ship').count()) >= 6)
-await page.mouse.move(200, 200)
-await page.mouse.move(1400, 700)
-await page.waitForTimeout(400)
-const mx = await page.locator('.welcome-gate').evaluate((el) => el.style.getPropertyValue('--mx'))
-ok('parallax responds to mouse', mx !== '' && Math.abs(Number(mx)) > 0.01, `--mx=${mx}`)
+// depth comes from the fleet's own surge, not mouse parallax
+const driftAnim = await page
+  .locator('.wg-ship-drift')
+  .first()
+  .evaluate((el) => getComputedStyle(el).animationName)
+ok('fleet surges on the isometric heading', driftAnim === 'wg-drift', `animation=${driftAnim}`)
+// board WITH the remember opt-in checked so the ack persists (click the
+// label — the styled lamp span covers the real checkbox)
+await page.locator('.welcome-remember').click()
 await page.locator('.welcome-enter').click()
 await page.waitForTimeout(800)
 ok('gate dismissed after agreeing', (await page.locator('.welcome-gate').count()) === 0)
-ok('acknowledgement persisted', (await page.evaluate(() => localStorage.getItem('shc-welcome-v1'))) === 'ack')
+ok(
+  'remember opt-in persisted',
+  (await page.evaluate(() => localStorage.getItem('shc-welcome-v2'))) === 'ack',
+)
 
 await page.waitForSelector('.node-root', { timeout: 10000 })
 
@@ -102,7 +109,7 @@ ok('cost updates to 248.5 after carbon=200', (await page.locator('.node-root').i
 // --- 6. Buy toggle on Plastics collapses subtree, prefills crafted cost ---
 await page.evaluate(() => {
   localStorage.clear()
-  localStorage.setItem('shc-welcome-v1', 'ack') // keep the spoiler gate down
+  localStorage.setItem('shc-welcome-v2', 'ack') // keep the spoiler gate down
 })
 await page.reload()
 await page.waitForSelector('.node-root')

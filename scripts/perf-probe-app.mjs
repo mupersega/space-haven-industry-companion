@@ -6,7 +6,7 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 900 } })
 await page.goto('http://localhost:5173/')
 await page.evaluate(() => {
   localStorage.clear()
-  localStorage.setItem('shc-welcome-v1', 'ack')
+  localStorage.setItem('shc-welcome-v2', 'ack')
 })
 await page.reload()
 await page.waitForSelector('.react-flow')

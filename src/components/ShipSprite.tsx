@@ -307,22 +307,22 @@ export function ShipSprite({ src, width, flip, drift, delay, left, top, sunDx, s
   return (
     <div
       className="wg-ship"
-      style={
-        {
-          left: `${left}%`,
-          top: `${top}%`,
-          width: width * padScale,
-          maxWidth: `${Math.round((width * padScale) / 14)}vw`,
-          '--flip': flip ? -1 : 1,
-        } as React.CSSProperties
-      }
+      style={{
+        left: `${left}%`,
+        top: `${top}%`,
+        width: width * padScale,
+        maxWidth: `${Math.round((width * padScale) / 14)}vw`,
+      }}
     >
-      {/* the drift animation lives on this inner wrapper so its keyframes
-          stay var()-free and run on the compositor */}
+      {/* the surge animation lives here, OUTSIDE the flip, so flipped
+          escorts still travel the same screen heading; keyframes are
+          var()-free so it runs on the compositor. Negative delay starts
+          each ship mid-path — the fleet never surges in unison. */}
       <div
-        className="wg-ship-inner"
-        style={{ animationDuration: `${drift}s`, animationDelay: `${delay}s` }}
+        className="wg-ship-drift"
+        style={{ animationDuration: `${drift}s`, animationDelay: `${-delay * 2}s` }}
       >
+      <div className="wg-ship-flip" style={{ '--flip': flip ? -1 : 1 } as React.CSSProperties}>
       <canvas ref={ref} className="wg-ship-canvas" />
       {dims &&
         boosts.map((bo, i) => {
@@ -366,6 +366,7 @@ export function ShipSprite({ src, width, flip, drift, delay, left, top, sunDx, s
             <span className="wg-glow-core" />
           </span>
         ))}
+      </div>
       </div>
     </div>
   )

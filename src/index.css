@@ -1517,21 +1517,28 @@ body {
   image-rendering: pixelated;
   filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.6));
 }
-/* The outer ship carries every var()-derived style STATICALLY (flip,
-   position); the inner wrapper runs the drift animation with literal
-   keyframes. Custom properties inside @keyframes force the animation off
-   the compositor onto the main thread — that split is the perf fix. */
+/* Three wrappers, each with one job, so the keyframes stay var()-free
+   (custom properties inside @keyframes force main-thread animation):
+   .wg-ship        static position + size
+   .wg-ship-drift  the hover surge — literal % keyframes, compositor-only.
+                   translate() %s are relative to the ship's OWN box, so
+                   every ship surges the same PHYSICAL distance and screen
+                   amplitude falls out of rendered size = true parallax.
+   .wg-ship-flip   static scaleX(var(--flip)) — inside the drift so the
+                   surge direction is never mirrored on flipped escorts */
 .wg-ship {
   position: absolute;
   height: auto;
-  transform: scaleX(var(--flip, 1));
 }
-.wg-ship-inner {
+.wg-ship-drift {
   position: relative;
   width: 100%;
-  /* promote to a compositor layer: the drift then animates without any
-     per-frame main-thread paint */
   will-change: transform;
+}
+.wg-ship-flip {
+  position: relative;
+  width: 100%;
+  transform: scaleX(var(--flip, 1));
 }
 .wg-ship-canvas {
   display: block;
@@ -1589,20 +1596,29 @@ body {
     radial-gradient(24% 14% at 74% 54%, color-mix(in srgb, var(--glow) 40%, transparent), transparent 88%);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .wg-ship-inner {
+  .wg-ship-drift {
     animation-name: wg-drift;
     animation-timing-function: ease-in-out;
     animation-iteration-count: infinite;
     animation-direction: alternate;
   }
 }
-/* literal keyframes only — no var() — so the drift stays on the compositor */
+/* Station-keeping surge fore and aft along the shallow-isometric heading
+   (the game's ~2:1 plane runs slightly downhill left→right), with a touch
+   of vertical float off the rail so it reads as hover, not a track.
+   Literal keyframes only — no var() — so it stays on the compositor. */
 @keyframes wg-drift {
-  from {
-    transform: translateY(-5px);
+  0% {
+    transform: translate(-2.2%, -1.25%);
   }
-  to {
-    transform: translateY(5px);
+  35% {
+    transform: translate(-0.7%, -0.2%);
+  }
+  65% {
+    transform: translate(0.8%, 0.55%);
+  }
+  100% {
+    transform: translate(2.2%, 1%);
   }
 }
 .welcome-content {
@@ -1654,6 +1670,90 @@ body {
 }
 .welcome-actions {
   margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+/* a console toggle, not a form checkbox: an indicator lamp that arms teal.
+   Teal marks ship systems here — amber stays reserved for the board action. */
+.welcome-remember {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  cursor: pointer;
+  user-select: none;
+  text-shadow: 0 1px 3px rgba(5, 9, 18, 0.95);
+}
+.welcome-remember input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.welcome-remember-lamp {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: rgba(11, 18, 32, 0.75);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.65);
+  transition: border-color 160ms ease;
+}
+.welcome-remember-lamp::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 1.5px;
+  background: var(--teal);
+  opacity: 0;
+  transform: scale(0.55);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+.welcome-remember-text {
+  transition: color 160ms ease;
+}
+.welcome-remember:hover {
+  color: var(--ink);
+}
+.welcome-remember:hover .welcome-remember-lamp {
+  border-color: var(--teal);
+}
+.welcome-remember input:checked ~ .welcome-remember-lamp {
+  border-color: var(--teal);
+}
+.welcome-remember input:checked ~ .welcome-remember-lamp::after {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow:
+    0 0 8px rgba(69, 213, 194, 0.8),
+    0 0 18px rgba(69, 213, 194, 0.35);
+}
+.welcome-remember input:checked ~ .welcome-remember-text {
+  color: var(--teal);
+}
+.welcome-remember input:focus-visible ~ .welcome-remember-lamp {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-remember-lamp,
+  .welcome-remember-lamp::after,
+  .welcome-remember-text {
+    transition: none;
+  }
 }
 .welcome-enter {
   background: var(--amber);
