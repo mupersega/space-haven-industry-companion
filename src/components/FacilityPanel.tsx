@@ -129,7 +129,7 @@ export function FacilityPanel({ mode, onMode, flowNames, builtSet, onToggleBuilt
                       ? `${(names.length - 1 - i) * STAGGER}ms`
                       : `${i * STAGGER}ms`,
                   }}
-                  title={shownEditing ? undefined : `${name} — ${built ? 'built' : 'not built'}`}
+                  data-tip={shownEditing ? undefined : `${name} — ${built ? 'built' : 'not built'}`}
                   disabled={!shownEditing || leaving}
                   onClick={shownEditing ? () => onToggleBuilt(slug) : undefined}
                 >
@@ -149,20 +149,20 @@ export function FacilityPanel({ mode, onMode, flowNames, builtSet, onToggleBuilt
       <div className="fac-controls">
         <button
           className={`fac-iconbtn fac-factory${mode ? ' active-good' : ' inactive'}`}
-          title={mode ? 'Facility mode on — click to turn off' : 'Facility mode off — click to turn on'}
+          data-tip={mode ? 'Facility mode on — click to turn off' : 'Facility mode off — click to turn on'}
           onClick={() => onMode(!mode)}
         >
           <FactoryIcon />
         </button>
         <button
           className={`fac-iconbtn fac-hammer${shownEditing ? ' active-edit' : ''}`}
-          title={shownEditing ? 'Done editing' : 'Edit built facilities'}
+          data-tip={shownEditing ? 'Done editing' : 'Edit built facilities'}
           disabled={!mode || leaving}
           onClick={swapEditing}
         >
           <HammerIcon />
         </button>
-        <button className="fac-iconbtn fac-help" title="Show the walkthrough" onClick={onHelp}>
+        <button className="fac-iconbtn fac-help" data-tip="Show the walkthrough" onClick={onHelp}>
           <HelpIcon />
         </button>
       </div>

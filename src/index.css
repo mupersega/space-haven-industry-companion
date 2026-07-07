@@ -315,6 +315,33 @@ body {
   height: 2px;
 }
 
+/* ---- tippy tooltips, bridge theme (every [data-tip] in the app) ---- */
+.tippy-box[data-theme~='bridge'] {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.tippy-box[data-theme~='bridge'] .tippy-content {
+  padding: 6px 9px;
+}
+.tippy-box[data-theme~='bridge'][data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: var(--line-strong);
+}
+.tippy-box[data-theme~='bridge'][data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: var(--line-strong);
+}
+.tippy-box[data-theme~='bridge'][data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: var(--line-strong);
+}
+.tippy-box[data-theme~='bridge'][data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: var(--line-strong);
+}
+
 /* ---- driver.js walkthrough, restyled to the bridge theme ---- */
 .driver-popover {
   background: var(--panel);

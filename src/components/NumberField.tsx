@@ -56,7 +56,7 @@ export function NumberField({
       step={step}
       value={value}
       placeholder={placeholder}
-      title={title}
+      data-tip={title}
       onChange={(ev) => {
         const raw = ev.target.value
         if (raw === '') onChange(null)

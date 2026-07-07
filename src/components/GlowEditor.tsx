@@ -100,7 +100,7 @@ export function GlowEditor({ glows, onChange }: GlowEditorProps) {
 
   return (
     <div className="glow-editor">
-      <button className="tuner-toggle" title="Author ship glows" onClick={() => setOpen((o) => !o)}>
+      <button className="tuner-toggle" data-tip="Author ship glows" onClick={() => setOpen((o) => !o)}>
         <FlameIcon />
       </button>
       {open && (
@@ -121,7 +121,7 @@ export function GlowEditor({ glows, onChange }: GlowEditorProps) {
             <div className="glow-side">
               <button
                 className={`pal-chip${allVisible ? ' sel' : ''}`}
-                title="show every mark type"
+                data-tip="show every mark type"
                 onClick={() => setVisible({ jet: true, round: true, boost: true })}
               >
                 all
@@ -130,7 +130,7 @@ export function GlowEditor({ glows, onChange }: GlowEditorProps) {
                 <button
                   key={t}
                   className={`pal-chip${visible[t] ? ' sel' : ''}`}
-                  title={`toggle ${t} marks in the preview`}
+                  data-tip={`toggle ${t} marks in the preview`}
                   onClick={() => setVisible({ ...visible, [t]: !visible[t] })}
                 >
                   {t}
@@ -180,7 +180,7 @@ export function GlowEditor({ glows, onChange }: GlowEditorProps) {
                     <button
                       key={i}
                       className="glow-mark"
-                      title={`${m.shape} · ${m.layer} · ${m.angle ?? 0}° — click to remove, Ctrl+click to stack`}
+                      data-tip={`${m.shape} · ${m.layer} · ${m.angle ?? 0}° — click to remove, Ctrl+click to stack`}
                       style={
                         {
                           left: `${m.x * 100}%`,
@@ -212,7 +212,7 @@ export function GlowEditor({ glows, onChange }: GlowEditorProps) {
               className="glow-pick"
               value={color}
               onChange={(ev) => setColor(ev.target.value)}
-              title="custom color"
+              data-tip="custom color"
             />
           </div>
           <div className="glow-row">

@@ -453,7 +453,7 @@ export default function App() {
                   {target === undefined && ITEMS[o.itemId].defaultPrice !== undefined && (
                     <button
                       className="use-default"
-                      title="Use the game's trade value as the sale price"
+                      data-tip="Use the game's trade value as the sale price"
                       onClick={() => setTarget(o.itemId, String(ITEMS[o.itemId].defaultPrice))}
                     >
                       @{fmtCr(ITEMS[o.itemId].defaultPrice!)}

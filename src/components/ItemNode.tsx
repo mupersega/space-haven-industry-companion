@@ -69,13 +69,13 @@ export function ItemNode({ data }: NodeProps<ItemFlowNode>) {
         <Hero id={item.id} />
         {!isMarket && <Handle type="target" position={Position.Left} className="handle" />}
         {data.hasConsumers && <Handle type="source" position={Position.Right} className="handle" />}
-        <button className="node-remove nodrag" title="Remove order" onClick={() => data.onRemove(data.itemId)}>
+        <button className="node-remove nodrag" data-tip="Remove order" onClick={() => data.onRemove(data.itemId)}>
           ✕
         </button>
         {isMarket && (
           <button
             className="node-worth nodrag"
-            title="Material worth — best use across all products"
+            data-tip="Material worth — best use across all products"
             onClick={() => data.onWorth(data.itemId)}
           >
             ⚖
@@ -154,7 +154,7 @@ export function ItemNode({ data }: NodeProps<ItemFlowNode>) {
       {data.hasConsumers && <Handle type="source" position={Position.Right} className="handle" />}
       <button
         className="node-worth nodrag"
-        title="Material worth — best use across all products"
+        data-tip="Material worth — best use across all products"
         onClick={() => data.onWorth(data.itemId)}
       >
         ⚖
@@ -206,7 +206,7 @@ export function ItemNode({ data }: NodeProps<ItemFlowNode>) {
               <span>base value</span>
               <button
                 className="use-default nodrag"
-                title="Reset price to the game's base trade value"
+                data-tip="Reset price to the game's base trade value"
                 onClick={() => data.onPrice(data.itemId, item.defaultPrice!)}
               >
                 @{fmtCr(item.defaultPrice)}

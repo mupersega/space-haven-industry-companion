@@ -48,7 +48,7 @@ export function SceneTuner({ params, onChange }: SceneTunerProps) {
 
   return (
     <div className="scene-tuner">
-      <button className="tuner-toggle" title="Tune the scene" onClick={() => setOpen((o) => !o)}>
+      <button className="tuner-toggle" data-tip="Tune the scene" onClick={() => setOpen((o) => !o)}>
         <SlidersIcon />
       </button>
       {open && (
@@ -82,7 +82,7 @@ export function SceneTuner({ params, onChange }: SceneTunerProps) {
           <div className="tuner-actions">
             <button
               className="use-default"
-              title="Roll a brand-new world: fresh continents and cloud layout"
+              data-tip="Roll a brand-new world: fresh continents and cloud layout"
               onClick={() => onChange({ ...params, seed: (Math.random() * 0x7fffffff) | 0 })}
             >
               new seed

@@ -322,7 +322,7 @@ await page.locator('.jingle-opt', { hasText: 'Klaxon Bounce' }).click()
 ok('jingle selection persists', (await page.evaluate(() => localStorage.getItem('shc-jingle-v1'))) === 'klaxon')
 await page.locator('.alarm-presets button', { hasText: '+5m' }).click()
 await page.waitForTimeout(200)
-const chipTitle = (await page.locator('.alarm-chip').getAttribute('title')) ?? ''
+const chipTitle = (await page.locator('.alarm-chip').getAttribute('data-tip')) ?? ''
 const in5 = new Intl.DateTimeFormat('en-AU', {
   timeZone: 'Australia/Brisbane',
   hour: '2-digit',
@@ -381,7 +381,16 @@ ok('factory icon green when on', factoryOn === 'rgb(126, 212, 145)', factoryOn)
 // rifle flow: Item Fabricator (rifle), Metal Refinery (steel), Chemical Refinery (plastics + chemicals)
 ok('three facility tiles for rifle flow', (await page.locator('.fac-tilebtn').count()) === 3)
 ok('all tiles red (needed) initially', (await page.locator('.fac-tilebtn.need').count()) === 3)
-ok('tile names on hover title', /Metal Refinery — not built/.test((await page.locator('.fac-tilebtn[title*="Metal Refinery"]').getAttribute('title')) ?? ''))
+ok('tile names on hover tip', /Metal Refinery — not built/.test((await page.locator('.fac-tilebtn[data-tip*="Metal Refinery"]').getAttribute('data-tip')) ?? ''))
+// tippy renders the data-tip as a themed tooltip
+await page.locator('.fac-help').hover()
+await page.waitForTimeout(600)
+ok(
+  'tippy tooltip appears on hover',
+  /walkthrough/i.test((await page.locator('.tippy-box').textContent().catch(() => '')) ?? ''),
+)
+await page.mouse.move(400, 400)
+await page.waitForTimeout(300)
 ok('steel card flags missing facility', /Metal Refinery · Ind 1 — not built/.test(await page.locator('.node', { hasText: 'Steel Plates' }).innerText()))
 // hammer = edit mode: waves the flow set out, then all facilities in
 await page.locator('.fac-hammer').click()

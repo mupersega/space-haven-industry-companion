@@ -56,7 +56,7 @@ export function Palette({ onAdd, onRemoveOne, onHover, orderQtys, boardIds, roiB
                   data-item={item.id}
                   className={`palette-item${boardIds.has(item.id) ? ' on-board' : ''}`}
                   draggable
-                  title={
+                  data-tip={
                     (roi !== undefined
                       ? `Sells ${fmtCr(item.defaultPrice ?? 0)} cr · ${roi >= 0 ? '+' : ''}${Math.round(roi * 100)}% on crafting cost. `
                       : '') + 'Click / drag adds one · right-click removes one'

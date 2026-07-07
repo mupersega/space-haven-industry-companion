@@ -29,7 +29,7 @@ export function WorthModal({ materialId, prices, buySet, onClose }: WorthModalPr
   return (
     <div className="worth-overlay" onClick={onClose}>
       <div className="worth-modal" role="dialog" aria-label={`Material worth: ${item.name}`} onClick={(ev) => ev.stopPropagation()}>
-        <button className="node-remove nodrag" title="Close" onClick={onClose}>
+        <button className="node-remove nodrag" data-tip="Close" onClick={onClose}>
           ✕
         </button>
         <div className="panel-eyebrow" style={{ color: cat.color }}>

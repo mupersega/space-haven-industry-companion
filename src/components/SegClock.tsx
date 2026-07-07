@@ -278,13 +278,13 @@ export function SegClock() {
         {alarmLabel ? (
           <button
             className="alarm-chip set nodrag"
-            title={`Alarm ${alarmLabel.hh}:${alarmLabel.mm} — click to cancel`}
+            data-tip={`Alarm ${alarmLabel.hh}:${alarmLabel.mm} — click to cancel`}
             onClick={() => setAlarmAt(null)}
           >
             <BellIcon size={8} />
           </button>
         ) : (
-          <button className="alarm-chip nodrag" title="Set an alarm" onClick={() => setOpen((o) => !o)}>
+          <button className="alarm-chip nodrag" data-tip="Set an alarm" onClick={() => setOpen((o) => !o)}>
             <BellIcon size={8} />
           </button>
         )}
