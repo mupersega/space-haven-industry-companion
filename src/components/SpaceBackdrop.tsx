@@ -103,27 +103,27 @@ export interface SceneParams {
   fleetY: number
 }
 
-// the shipped scene, hand-tuned live: an ice world under heavy cloud with a
-// strong atmosphere, the fleet seated against its dark face
+// the shipped scene, hand-tuned live: a vast storm-wrapped ice world low in
+// the frame, the fleet crossing its dark face toward the sun
 export const DEFAULT_SCENE: SceneParams = {
-  sunX: 0.78,
+  sunX: 0.81,
   sunY: 0.3,
-  planetX: 0.49,
-  planetY: 0.53,
-  planetR: 0.34,
+  planetX: 0.19,
+  planetY: 0.77,
+  planetR: 0.58,
   crescent: 1.05,
   terrain: 1,
   terrainScale: 1.4,
-  clouds: 9.2,
-  cloudSize: 1.2,
+  clouds: 15,
+  cloudSize: 1.3,
   cloudAlpha: 3,
   rim: 2,
   halo: 2.5,
-  dark: 0.95,
-  seed: 974209705,
+  dark: 1,
+  seed: 2142864070,
   palette: 2,
-  fleetX: 0.42,
-  fleetY: 0.38,
+  fleetX: 0.45,
+  fleetY: 0.41,
 }
 
 // ---- 3D value noise + fBm, sampled on the sphere's surface normals so the
