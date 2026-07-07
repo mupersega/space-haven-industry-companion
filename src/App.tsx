@@ -46,8 +46,10 @@ interface AppState {
   builtFacilities: string[]
 }
 
+// fresh boards start empty: the guided walkthrough has the visitor place
+// their first order (Rifle) themselves
 const DEFAULT_STATE: AppState = {
-  orders: [{ itemId: 'rifle', qty: 1 }],
+  orders: [],
   prices: {},
   buyList: ['fibers'],
   targets: {},
@@ -90,11 +92,15 @@ export default function App() {
   }, [state])
 
   // first lap around the ledger: the walkthrough runs once, after the gate
-  // has fully cleared so driver.js highlights land on settled layout
+  // has fully cleared so driver.js highlights land on settled layout.
+  // Empty board → guided (the visitor must click Rifle themselves, which
+  // also guarantees the later stops have elements); populated → classic.
   useEffect(() => {
     if (!welcomed || !gateGone || tourSeen()) return
-    const t = setTimeout(startTour, 600)
+    const guided = state.orders.length === 0
+    const t = setTimeout(() => startTour({ guided }), 600)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [welcomed, gateGone])
 
   const { orders, prices } = state

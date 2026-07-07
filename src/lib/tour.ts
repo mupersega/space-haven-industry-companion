@@ -11,16 +11,29 @@ export function tourSeen(): boolean {
   }
 }
 
-/** The first-run walkthrough: one lap around the ledger's workflow.
- * driver.js highlights live elements, so it runs against the default
- * rifle example that ships on a fresh board. */
-export function startTour() {
+/** One lap around the ledger's workflow.
+ *
+ * `guided` (the very first run, empty board): step one highlights the Rifle
+ * row and has NO next button — the visitor must actually click it. The
+ * click assembles the rifle chain, which guarantees every later stop has a
+ * real element to point at. Escape and the ✕ stay available as off-ramps.
+ * Replays (and boards that already have orders) get the classic tour. */
+export function startTour(opts: { guided?: boolean } = {}) {
+  const guided = opts.guided ?? false
   // seen = it started once — set up front, not in driver's destroy hook,
   // whose firing proved timing-sensitive when steps are clicked quickly
   try {
     localStorage.setItem(TOUR_KEY, 'done')
   } catch {
     /* private browsing */
+  }
+  const onRifleClick = (ev: MouseEvent) => {
+    if (!(ev.target as HTMLElement).closest?.('[data-item="rifle"]')) return
+    document.removeEventListener('click', onRifleClick, true)
+    // let the chain assemble and the layout settle before highlighting it
+    setTimeout(() => {
+      if (d.isActive() && d.getActiveIndex() === 0) d.moveNext()
+    }, 700)
   }
   const d = driver({
     showProgress: true,
@@ -30,14 +43,18 @@ export function startTour() {
     doneBtnText: 'Fly safe',
     overlayOpacity: 0.6,
     stagePadding: 6,
+    onDestroyed: () => document.removeEventListener('click', onRifleClick, true),
     steps: [
       {
-        element: '.palette',
+        element: '[data-item="rifle"]',
         popover: {
           title: 'The catalogue',
-          description:
-            'Every item in the game, with real trade values. Left-click adds one to the board, right-click removes one, or drag it straight onto the canvas. The % badge is return on cost at base prices.',
+          description: guided
+            ? 'Every item in the game, with real trade values. Start your first order: click Rifle to put it on the board.'
+            : 'Every item in the game, with real trade values. Left-click adds one to the board, right-click removes one, or drag it straight onto the canvas. The % badge is return on cost at base prices.',
           side: 'right',
+          // guided: the only way forward is doing the thing
+          ...(guided ? { showButtons: ['close' as const] } : {}),
         },
       },
       {
@@ -96,5 +113,6 @@ export function startTour() {
       },
     ],
   })
+  if (guided) document.addEventListener('click', onRifleClick, true)
   d.drive()
 }

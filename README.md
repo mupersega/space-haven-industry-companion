@@ -4,6 +4,13 @@ A local-only React tool for the game [Space Haven](https://bugbyte.fi/spacehaven
 item onto the canvas to chart its full production chain — final product on the right, base asteroid
 resources on the left — then assign prices to the things you buy and read off whether crafting pays.
 
+## Attribution
+
+This is an unofficial fan project, not affiliated with or endorsed by [Bugbyte Ltd.](https://bugbyte.fi/)
+Space Haven and all artwork and game assets used here (ship sprites, the logo, star and nebula
+brushes, planet art) are the property of Bugbyte Ltd. This project is free, carries no ads or
+monetization, and exists to enhance the enjoyment of the game.
+
 ## Run it
 
 ```
@@ -35,8 +42,9 @@ game's own star and nebula brushes (extracted from its particle definitions) sta
 canvases, a runtime-drawn giant planet limb like the in-game system view, real planet sprites, the
 official logo, and the background-fleet ship sprites in their in-game formation — all with mouse
 parallax. It warns that seeing exact recipes and trade values can dim the wonder for new players,
-and only proceeds on an explicit "I know what I'm doing." Acknowledged once, stored in
-localStorage, never shown again.
+and only proceeds on an explicit "I know what I'm doing." Boarding covers the rest of the browser
+session (refreshes don't re-gate); the gate asks again in a new session unless "Remember for next
+time" was checked, which stores the acknowledgment permanently.
 
 ## Data
 

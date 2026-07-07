@@ -53,6 +53,7 @@ export function Palette({ onAdd, onRemoveOne, onHover, orderQtys, boardIds, roiB
               return (
                 <div
                   key={item.id}
+                  data-item={item.id}
                   className={`palette-item${boardIds.has(item.id) ? ' on-board' : ''}`}
                   draggable
                   title={

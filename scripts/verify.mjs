@@ -22,6 +22,9 @@ await page.goto(BASE)
 await page.evaluate(() => {
   localStorage.clear()
   localStorage.setItem('shc-tour-v1', 'done') // keep the walkthrough down; tested explicitly later
+  // fresh boards ship empty (the guided tour builds them) — seed the rifle
+  // example the chain assertions expect
+  localStorage.setItem('shc-state-v2', JSON.stringify({ orders: [{ itemId: 'rifle', qty: 1 }], buyList: ['fibers'] }))
 })
 await page.reload()
 
@@ -114,6 +117,7 @@ await page.evaluate(() => {
   localStorage.clear()
   localStorage.setItem('shc-welcome-v2', 'ack') // keep the spoiler gate down
   localStorage.setItem('shc-tour-v1', 'done') // and the walkthrough
+  localStorage.setItem('shc-state-v2', JSON.stringify({ orders: [{ itemId: 'rifle', qty: 1 }], buyList: ['fibers'] }))
 })
 await page.reload()
 await page.waitForSelector('.node-root')
@@ -361,8 +365,10 @@ await shotgunRow.click({ button: 'right' })
 await page.waitForTimeout(250)
 
 // --- 20. Facility mode ---
-// fresh state so the rifle flow is default
-await page.evaluate(() => localStorage.removeItem('shc-state-v2'))
+// fresh rifle board (defaults ship empty now, so seed it)
+await page.evaluate(() =>
+  localStorage.setItem('shc-state-v2', JSON.stringify({ orders: [{ itemId: 'rifle', qty: 1 }], buyList: ['fibers'] })),
+)
 await page.reload()
 await page.waitForSelector('.node-root')
 ok('facility panel starts off', (await page.locator('.facility-panel.off').count()) === 1)
@@ -403,16 +409,32 @@ ok(
   await page.locator('.brand-bg').evaluate((img) => img.naturalWidth > 0),
 )
 
-// --- 22. driver.js walkthrough ---
-await page.evaluate(() => localStorage.removeItem('shc-tour-v1'))
+// --- 22. driver.js guided first-run walkthrough ---
+// true first visit: no tour flag AND no board state → guided mode
+await page.evaluate(() => {
+  localStorage.removeItem('shc-tour-v1')
+  localStorage.removeItem('shc-state-v2')
+})
 await page.reload()
-await page.waitForSelector('.node-root')
 await page.waitForSelector('.driver-popover', { timeout: 5000 })
 ok(
-  'walkthrough auto-starts on first visit',
+  'guided walkthrough auto-starts on an empty board',
   /catalogue/i.test((await page.locator('.driver-popover-title').textContent()) ?? ''),
 )
-let tourSteps = 1
+ok(
+  'guided step 1 has no next button — the click is the way forward',
+  !(await page.locator('.driver-popover-next-btn').isVisible().catch(() => false)),
+)
+ok('board starts empty', (await page.locator('.node-root').count()) === 0)
+await page.locator('[data-item="rifle"]').click()
+await page.waitForTimeout(1300)
+ok(
+  'clicking rifle assembles the chain and advances the tour',
+  (await page.locator('.node-root').count()) === 1 &&
+    /final product/i.test((await page.locator('.driver-popover-title').textContent()) ?? ''),
+  `title=${await page.locator('.driver-popover-title').textContent()}`,
+)
+let tourSteps = 2
 for (let i = 0; i < 10; i++) {
   const next = page.locator('.driver-popover-next-btn')
   if ((await next.count()) === 0) break
@@ -426,9 +448,10 @@ ok(
   'walkthrough marked seen',
   (await page.evaluate(() => localStorage.getItem('shc-tour-v1'))) === 'done',
 )
+// replay on a populated board: classic tour with next buttons
 await page.locator('.fac-help').click()
 await page.waitForSelector('.driver-popover', { timeout: 3000 })
-ok('help button replays the walkthrough', (await page.locator('.driver-popover').count()) === 1)
+ok('help button replays the walkthrough off-rails', await page.locator('.driver-popover-next-btn').isVisible())
 await page.keyboard.press('Escape')
 await page.waitForTimeout(300)
 ok('escape dismisses the walkthrough', (await page.locator('.driver-popover').count()) === 0)

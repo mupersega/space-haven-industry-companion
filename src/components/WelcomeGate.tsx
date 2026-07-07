@@ -5,9 +5,12 @@ import { SceneTuner } from './SceneTuner'
 import { ShipSprite } from './ShipSprite'
 import { DEFAULT_SCENE, SpaceBackdrop, type SceneParams } from './SpaceBackdrop'
 
-// v2: the ack is now an explicit "remember for next time" opt-in; v1 acks
-// were set on every entry and don't count as consent to skip the gate
+// Two tiers of acknowledgment. Boarding always acks the current browser
+// session (sessionStorage), so a refresh doesn't re-gate. "Remember for
+// next time" additionally acks permanently (localStorage). v2: the v1
+// localStorage ack was set on every entry and doesn't count as opt-in.
 const WELCOME_KEY = 'shc-welcome-v2'
+const WELCOME_SESSION_KEY = 'shc-welcome-session'
 const SCENE_KEY = 'shc-scene-v1'
 const GLOW_KEY = 'shc-glows-v1'
 
@@ -47,7 +50,10 @@ function loadScene(): SceneParams {
 
 export function welcomeAcknowledged(): boolean {
   try {
-    return localStorage.getItem(WELCOME_KEY) === 'ack'
+    return (
+      localStorage.getItem(WELCOME_KEY) === 'ack' ||
+      sessionStorage.getItem(WELCOME_SESSION_KEY) === 'ack'
+    )
   } catch {
     return true
   }
@@ -84,7 +90,7 @@ const SHIPS: ShipSpec[] = [
   // freighter running beneath the flagship's keel
   { src: 'ship-hf1', dx: -17, dy: 8, width: 160, drift: 13, delay: 3.0, flip: true },
   // tiny scout running point, front and centre of the fleet
-  { src: 'ship-fs3', dx: 12, dy: 16, width: 46, drift: 11, delay: 0.5 },
+  { src: 'ship-fs3', dx: 12, dy: 22, width: 46, drift: 11, delay: 0.5 },
   // small stray off the port beam
   { src: 'ship-fs2', dx: -21, dy: 19, width: 56, drift: 13, delay: 2.1 },
   // escort below the flagship's engines, on the dark face
@@ -157,8 +163,14 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
   // (wg-drift keyframes use translate %s of the ship's own box).
 
   const accept = () => {
-    // the gate asks every visit unless the visitor opts into being remembered
-    if (remember) localStorage.setItem(WELCOME_KEY, 'ack')
+    // boarding covers the rest of this browser session; the permanent ack
+    // is only written when the visitor opts into being remembered
+    try {
+      sessionStorage.setItem(WELCOME_SESSION_KEY, 'ack')
+      if (remember) localStorage.setItem(WELCOME_KEY, 'ack')
+    } catch {
+      // storage unavailable: the gate will simply ask again next load
+    }
     setExiting(true)
     // fire immediately: the app mounts beneath and the exit fade reveals it
     onEnter()
