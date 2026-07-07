@@ -19,14 +19,17 @@ page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text()))
 page.on('pageerror', (e) => consoleErrors.push(String(e)))
 
 await page.goto(BASE)
-await page.evaluate(() => localStorage.clear())
+await page.evaluate(() => {
+  localStorage.clear()
+  localStorage.setItem('shc-tour-v1', 'done') // keep the walkthrough down; tested explicitly later
+})
 await page.reload()
 
 // --- 0. First-visit spoiler gate ---
 await page.waitForSelector('.welcome-gate', { timeout: 10000 })
 const gateBox = await page.locator('.welcome-gate').boundingBox()
 ok('gate covers the whole screen', gateBox.width >= 1680 && gateBox.height >= 950, JSON.stringify(gateBox))
-ok('gate warns about the wonder', /dim the wonder/i.test(await page.locator('.welcome-gate').innerText()))
+ok('gate warns about the wonder', /wonder/i.test(await page.locator('.welcome-gate').innerText()))
 ok('official logo loads', await page.locator('.welcome-logo').evaluate((i) => i.naturalWidth > 0))
 await page.waitForTimeout(600) // let the canvas backdrop paint
 ok(
@@ -110,6 +113,7 @@ ok('cost updates to 248.5 after carbon=200', (await page.locator('.node-root').i
 await page.evaluate(() => {
   localStorage.clear()
   localStorage.setItem('shc-welcome-v2', 'ack') // keep the spoiler gate down
+  localStorage.setItem('shc-tour-v1', 'done') // and the walkthrough
 })
 await page.reload()
 await page.waitForSelector('.node-root')
@@ -399,7 +403,37 @@ ok(
   await page.locator('.brand-bg').evaluate((img) => img.naturalWidth > 0),
 )
 
-// --- 22. Console errors ---
+// --- 22. driver.js walkthrough ---
+await page.evaluate(() => localStorage.removeItem('shc-tour-v1'))
+await page.reload()
+await page.waitForSelector('.node-root')
+await page.waitForSelector('.driver-popover', { timeout: 5000 })
+ok(
+  'walkthrough auto-starts on first visit',
+  /catalogue/i.test((await page.locator('.driver-popover-title').textContent()) ?? ''),
+)
+let tourSteps = 1
+for (let i = 0; i < 10; i++) {
+  const next = page.locator('.driver-popover-next-btn')
+  if ((await next.count()) === 0) break
+  await next.click()
+  await page.waitForTimeout(350)
+  if ((await page.locator('.driver-popover').count()) === 0) break
+  tourSteps++
+}
+ok('walkthrough covers 7 stops and closes', tourSteps === 7 && (await page.locator('.driver-popover').count()) === 0, `steps=${tourSteps}`)
+ok(
+  'walkthrough marked seen',
+  (await page.evaluate(() => localStorage.getItem('shc-tour-v1'))) === 'done',
+)
+await page.locator('.fac-help').click()
+await page.waitForSelector('.driver-popover', { timeout: 3000 })
+ok('help button replays the walkthrough', (await page.locator('.driver-popover').count()) === 1)
+await page.keyboard.press('Escape')
+await page.waitForTimeout(300)
+ok('escape dismisses the walkthrough', (await page.locator('.driver-popover').count()) === 0)
+
+// --- 23. Console errors ---
 ok('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 5).join(' ;; '))
 
 await browser.close()

@@ -20,6 +20,7 @@
   "dependencies": {
     "@xyflow/react": "^12.11.1",
     "dagre": "^0.8.5",
+    "driver.js": "^1.6.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   }

@@ -27,6 +27,7 @@ import { NumberField } from './components/NumberField'
 import { Palette } from './components/Palette'
 import { SegClock } from './components/SegClock'
 import { WelcomeGate, welcomeAcknowledged } from './components/WelcomeGate'
+import { startTour, tourSeen } from './lib/tour'
 import { WorthModal } from './components/WorthModal'
 
 const STORAGE_KEY = 'shc-state-v2'
@@ -87,6 +88,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
+
+  // first lap around the ledger: the walkthrough runs once, after the gate
+  // has fully cleared so driver.js highlights land on settled layout
+  useEffect(() => {
+    if (!welcomed || !gateGone || tourSeen()) return
+    const t = setTimeout(startTour, 600)
+    return () => clearTimeout(t)
+  }, [welcomed, gateGone])
 
   const { orders, prices } = state
   const buySet = useMemo(() => new Set(state.buyList), [state.buyList])
@@ -391,6 +400,7 @@ export default function App() {
           flowNames={flowFacilities.map((f) => f.facility)}
           builtSet={builtSet}
           onToggleBuilt={toggleBuilt}
+          onHelp={startTour}
         />
       </main>
 
@@ -410,7 +420,7 @@ export default function App() {
           <SegClock />
         </header>
 
-        <section className="panel">
+        <section className="panel" data-tour="orders">
           <div className="panel-eyebrow">orders · target sale prices</div>
           {orders.length === 0 && <p className="hint">The manifest is empty.</p>}
           {orders.map((o) => {
@@ -481,7 +491,7 @@ export default function App() {
           )}
         </section>
 
-        <section className="panel grow">
+        <section className="panel grow" data-tour="shopping">
           <div className="panel-eyebrow">shopping list · all orders</div>
           <table className="leaf-table">
             <thead>
@@ -522,6 +532,9 @@ export default function App() {
             Default prices are the game's own trade values (wiki Trading data). In-game buy offers usually
             run 5–6× sell value, so edit any amber price to what traders actually quote you. Everything
             stays in your browser.
+          </p>
+          <p className="hint foot-legal">
+            Unofficial fan project. Space Haven and all game assets are the property of Bugbyte Ltd.
           </p>
           <button
             className="reset-btn"
