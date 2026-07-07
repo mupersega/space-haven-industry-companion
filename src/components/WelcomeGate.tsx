@@ -76,7 +76,7 @@ interface ShipSpec {
 // clears the logo and warning copy on the left
 const SHIPS: ShipSpec[] = [
   // freighter riding the planet's lit limb
-  { src: 'ship-hf1', dx: 23, dy: -2, width: 190, depth: 28, drift: 13, delay: 3.0, flip: true },
+  { src: 'ship-hf1', dx: 18, dy: 1, width: 190, depth: 28, drift: 13, delay: 3.0, flip: true },
   // tiny scout running point, front and centre of the fleet
   { src: 'ship-fs3', dx: 12, dy: 16, width: 46, depth: 12, drift: 11, delay: 0.5 },
   // small stray off the port beam

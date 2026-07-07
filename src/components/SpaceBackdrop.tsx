@@ -746,13 +746,16 @@ export function SpaceBackdrop({ params = DEFAULT_SCENE }: { params?: SceneParams
 
   return (
     <>
-      <div className="wg-layer" style={{ '--d': 4 } as React.CSSProperties}>
+      {/* depth 0: the nebula, stars and planet are vast and impossibly far —
+          they do not parallax with the mouse. Only the fleet (near objects)
+          moves against them. */}
+      <div className="wg-layer" style={{ '--d': 0 } as React.CSSProperties}>
         <canvas ref={nebRef} className="wg-canvas wg-ambient" data-space-layer="nebula" />
       </div>
-      <div className="wg-layer" style={{ '--d': 7 } as React.CSSProperties}>
+      <div className="wg-layer" style={{ '--d': 0 } as React.CSSProperties}>
         <canvas ref={farRef} className="wg-canvas" data-space-layer="far-stars" />
       </div>
-      <div className="wg-layer" style={{ '--d': 9 } as React.CSSProperties}>
+      <div className="wg-layer" style={{ '--d': 0 } as React.CSSProperties}>
         <canvas ref={limbRef} className="wg-canvas" data-space-layer="planet" />
       </div>
     </>
