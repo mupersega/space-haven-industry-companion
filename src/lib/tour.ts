@@ -137,11 +137,27 @@ export function startTour(opts: { guided?: boolean } = {}) {
       },
       {
         element: '.brand .seg-clock',
+        // on mobile the sidebar is a scrollable bottom band; earlier steps
+        // leave it scrolled down at the shopping list. Snap it back to the top
+        // so the clock (in the masthead) is fully in view with the most room
+        // below it, then re-measure so the popover anchors cleanly beneath.
+        onHighlightStarted: () => {
+          const sidebar = document.querySelector('.sidebar')
+          if (sidebar) sidebar.scrollTop = 0
+          setTimeout(() => {
+            if (d.isActive()) d.refresh()
+          }, 250)
+        },
         popover: {
           title: 'Ship time',
           description:
             'Your local time. Click the bell to set an alarm, even spacefarers gotta poop!',
+          // desktop: sit to the left of the clock. On mobile driver won't honour
+          // any side for this low, scroll-contained element, so tour-shiptime
+          // pins the popover just above the sidebar band via CSS (see index.css)
+          // — keeping the highlighted clock visible instead of covered.
           side: 'left',
+          popoverClass: 'tour-shiptime',
         },
       },
     ],

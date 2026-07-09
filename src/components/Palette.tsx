@@ -76,7 +76,20 @@ export function Palette({ onAdd, onRemoveOne, onHover, orderQtys, boardIds, roiB
                   <ItemIcon id={item.id} size={18} />
                   <span className="palette-name">{item.name}</span>
                   {ordered > 0 ? (
-                    <span className="qty-badge">×{ordered}</span>
+                    <button
+                      type="button"
+                      className="qty-badge"
+                      data-tip="Remove one"
+                      aria-label={`Remove one ${item.name}`}
+                      onClick={(ev) => {
+                        // the badge decrements; the row's own click still adds.
+                        // stop here so a badge tap doesn't also bubble to add one.
+                        ev.stopPropagation()
+                        onRemoveOne(item.id)
+                      }}
+                    >
+                      ×{ordered}
+                    </button>
                   ) : (
                     <span className="palette-price mono">{fmtCr(item.defaultPrice ?? 0)}</span>
                   )}

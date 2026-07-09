@@ -416,7 +416,7 @@ export default function App() {
         {orders.length === 0 ? (
           <div className="empty-canvas">
             <div className="empty-title">No orders on the manifest</div>
-            <p>Drag an item in from the catalogue to chart its production chain.</p>
+            <p>Add an item from the catalogue to chart its production chain.</p>
           </div>
         ) : (
           <ReactFlow
