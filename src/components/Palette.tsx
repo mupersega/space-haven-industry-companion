@@ -3,7 +3,7 @@ import { CATEGORY_META, PALETTE_ITEMS, type Category } from '../data/items'
 import { fmtCr } from '../lib/fmt'
 import { ItemIcon } from './ItemIcon'
 
-const GROUP_ORDER: Category[] = ['product', 'component', 'refined', 'grown', 'raw', 'scrap', 'trade']
+const GROUP_ORDER: Category[] = ['product', 'component', 'refined', 'grown', 'food', 'raw', 'scrap', 'corpse', 'trade']
 
 interface PaletteProps {
   onAdd: (id: string) => void

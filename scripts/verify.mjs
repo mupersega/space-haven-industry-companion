@@ -34,7 +34,23 @@ const gateBox = await page.locator('.welcome-gate').boundingBox()
 ok('gate covers the whole screen', gateBox.width >= 1680 && gateBox.height >= 950, JSON.stringify(gateBox))
 ok('gate warns about the wonder', /wonder/i.test(await page.locator('.welcome-gate').innerText()))
 ok('official logo loads', await page.locator('.welcome-logo').evaluate((i) => i.naturalWidth > 0))
-await page.waitForTimeout(600) // let the canvas backdrop paint
+// the backdrop renders in a web worker now, so first paint is async — poll the
+// planet layer until it has actually filled in rather than guessing a delay
+await page
+  .waitForFunction(
+    () => {
+      const cv = document.querySelector('canvas[data-space-layer="planet"]')
+      if (!(cv instanceof HTMLCanvasElement) || !cv.width || !cv.height) return false
+      const g = cv.getContext('2d')
+      if (!g) return false
+      const d = g.getImageData(0, 0, cv.width, cv.height).data
+      let lit = 0
+      for (let i = 3; i < d.length; i += 4) if (d[i] > 0 && ++lit > 10000) return true
+      return false
+    },
+    { timeout: 8000 },
+  )
+  .catch(() => {})
 ok(
   'procedural backdrop painted (game-brush stars)',
   await page.locator('canvas[data-space-layer="far-stars"]').evaluate((cv) => {
@@ -112,7 +128,8 @@ await carbonInput.fill('200')
 await page.waitForTimeout(300)
 ok('cost updates to 248.5 after carbon=200', (await page.locator('.node-root').innerText()).includes('248.5'))
 
-// --- 6. Buy toggle on Plastics collapses subtree, prefills crafted cost ---
+// --- 6. Buy toggle on Plastics collapses subtree; buy price defaults to the
+//        base trade value, and toggling craft⇄buy leaves no stale residual ---
 await page.evaluate(() => {
   localStorage.clear()
   localStorage.setItem('shc-welcome-v2', 'ack') // keep the spoiler gate down
@@ -121,17 +138,37 @@ await page.evaluate(() => {
 })
 await page.reload()
 await page.waitForSelector('.node-root')
-await page.locator('.node', { hasText: 'Plastics' }).locator('.toggle-buy').click()
+const plasticsNode = () => page.locator('.node', { hasText: 'Plastics' })
+const plasticsPriceInput = () => plasticsNode().locator('input.price-input')
+const boardNames = () =>
+  page.$$eval('.node .node-name, .node-root .node-name', (els) => els.map((e) => e.textContent.trim()))
+await plasticsNode().locator('.toggle-buy').click() // ⇄ buy it instead
 await page.waitForTimeout(400)
-const namesAfter = await page.$$eval('.node .node-name, .node-root .node-name', (els) =>
-  els.map((e) => e.textContent.trim()),
-)
-ok('chemicals hidden after buying plastics', !namesAfter.includes('Chemicals'))
-const plasticsPrice = await page
-  .locator('.node', { hasText: 'Plastics' })
-  .locator('input.price-input')
-  .inputValue()
-ok('plastics buy price prefilled with crafted cost 110', plasticsPrice === '110')
+ok('chemicals hidden after buying plastics', !(await boardNames()).includes('Chemicals'))
+// no user price set → the buy price is the game's base trade value, not the
+// crafted cost (110). Previously the crafted cost was prefilled here.
+ok('plastics buy price defaults to base trade value 200', (await plasticsPriceInput().inputValue()) === '200')
+
+// craft ⇄ buy round-trip with no user price leaves no residual crafted cost
+await plasticsNode().locator('.toggle-buy').click() // ⟲ craft it instead
+await page.waitForTimeout(400)
+ok('chemicals subtree returns when crafting again', (await boardNames()).includes('Chemicals'))
+await plasticsNode().locator('.toggle-buy').click() // ⇄ buy it instead
+await page.waitForTimeout(400)
+ok('re-buying still shows base value 200, not a residual', (await plasticsPriceInput().inputValue()) === '200')
+
+// a trader price the user DID type survives the round-trip
+await plasticsPriceInput().fill('180')
+await page.waitForTimeout(200)
+await plasticsNode().locator('.toggle-buy').click() // ⟲ craft
+await page.waitForTimeout(400)
+await plasticsNode().locator('.toggle-buy').click() // ⇄ buy
+await page.waitForTimeout(400)
+ok('user-entered trader price survives craft⇄buy', (await plasticsPriceInput().inputValue()) === '180')
+// leave plastics crafted so the downstream rifle-chain assertions see the
+// pure crafted cost (134.5), not a bought-in price
+await plasticsNode().locator('.toggle-buy').click() // ⟲ craft it instead
+await page.waitForTimeout(400)
 
 // --- 7. Add second order via palette click; shared nodes merge ---
 await page.locator('.palette-item', { hasText: 'Laser Rifle' }).click()
@@ -295,7 +332,7 @@ await bioRow.click()
 await page.mouse.move(700, 120)
 await page.waitForTimeout(600)
 const bioCard = page.locator('.node-root-market')
-ok('bio matter pins with usage notes', /Composter turns 1 into/.test(await bioCard.innerText()))
+ok('bio matter pins with usage notes', /Composter turns 1 unit into/.test(await bioCard.innerText()))
 await bioCard.locator('.node-worth').click()
 await page.waitForTimeout(300)
 ok('worth modal shows notes for chain-less item', /Algae Dispensers/.test(await page.locator('.worth-modal').innerText()))
@@ -303,15 +340,12 @@ await page.keyboard.press('Escape')
 await bioRow.click({ button: 'right' })
 await page.waitForTimeout(300)
 
-// --- 17. Brisbane 8888 clock ---
+// --- 17. Local 8888 clock ---
 const clockTime = await page.locator('.seg-row').getAttribute('data-time')
-const expected = new Intl.DateTimeFormat('en-AU', {
-  timeZone: 'Australia/Brisbane',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-}).format(new Date())
-ok('clock shows Brisbane time', clockTime === expected, `clock ${clockTime} vs expected ${expected}`)
+const pad2 = (n) => String(n).padStart(2, '0')
+const nowLocal = new Date()
+const expected = `${pad2(nowLocal.getHours())}:${pad2(nowLocal.getMinutes())}`
+ok('clock shows local time', clockTime === expected, `clock ${clockTime} vs expected ${expected}`)
 ok('clock has lit segments', (await page.locator('.seg.on').count()) > 0)
 
 // --- 18. Alarm ---
@@ -323,13 +357,9 @@ ok('jingle selection persists', (await page.evaluate(() => localStorage.getItem(
 await page.locator('.alarm-presets button', { hasText: '+5m' }).click()
 await page.waitForTimeout(200)
 const chipTitle = (await page.locator('.alarm-chip').getAttribute('data-tip')) ?? ''
-const in5 = new Intl.DateTimeFormat('en-AU', {
-  timeZone: 'Australia/Brisbane',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-}).format(new Date(Date.now() + 5 * 60_000))
-ok('alarm bell shows +5m Brisbane time', chipTitle.includes(in5), `title ${chipTitle} vs ${in5}`)
+const at5 = new Date(Date.now() + 5 * 60_000)
+const in5 = `${pad2(at5.getHours())}:${pad2(at5.getMinutes())}`
+ok('alarm bell shows +5m local time', chipTitle.includes(in5), `title ${chipTitle} vs ${in5}`)
 ok('alarm bell lit when set', (await page.locator('.alarm-chip.set').count()) === 1)
 await page.locator('.alarm-chip').click() // cancel
 await page.waitForTimeout(200)
@@ -381,9 +411,9 @@ ok('factory icon green when on', factoryOn === 'rgb(126, 212, 145)', factoryOn)
 // rifle flow: Item Fabricator (rifle), Metal Refinery (steel), Chemical Refinery (plastics + chemicals)
 ok('three facility tiles for rifle flow', (await page.locator('.fac-tilebtn').count()) === 3)
 ok('all tiles red (needed) initially', (await page.locator('.fac-tilebtn.need').count()) === 3)
-ok('tile names on hover tip', /Metal Refinery — not built/.test((await page.locator('.fac-tilebtn[data-tip*="Metal Refinery"]').getAttribute('data-tip')) ?? ''))
+ok('tile names on hover tip', /Metal Refinery: not built/.test((await page.locator('.fac-tilebtn[data-tip*="Metal Refinery"]').getAttribute('data-tip')) ?? ''))
 // tippy renders the data-tip as a themed tooltip
-await page.locator('.fac-help').hover()
+await page.locator('.canvas-help').hover()
 await page.waitForTimeout(600)
 ok(
   'tippy tooltip appears on hover',
@@ -435,6 +465,8 @@ ok(
   !(await page.locator('.driver-popover-next-btn').isVisible().catch(() => false)),
 )
 ok('board starts empty', (await page.locator('.node-root').count()) === 0)
+ok('empty board pulses the walkthrough icon', (await page.locator('.canvas-help.pulse').count()) === 1)
+ok('no explicit walkthrough button on the board', (await page.locator('.walkthrough-btn').count()) === 0)
 // the walkthrough locks you in: stray clicks and escape don't eject you
 await page.mouse.click(800, 500)
 await page.waitForTimeout(350)
@@ -450,22 +482,44 @@ ok(
     /final product/i.test((await page.locator('.driver-popover-title').textContent()) ?? ''),
   `title=${await page.locator('.driver-popover-title').textContent()}`,
 )
-let tourSteps = 2
-for (let i = 0; i < 10; i++) {
-  const next = page.locator('.driver-popover-next-btn')
-  if ((await next.count()) === 0) break
-  await next.click()
-  await page.waitForTimeout(350)
-  if ((await page.locator('.driver-popover').count()) === 0) break
-  tourSteps++
-}
-ok('walkthrough covers 7 stops and closes', tourSteps === 7 && (await page.locator('.driver-popover').count()) === 0, `steps=${tourSteps}`)
+// we're on "The final product" (step 2 of 7). Walk the rest explicitly so
+// the interactive triggers are exercised, not just the Next button.
+const stepTitle = async () => (await page.locator('.driver-popover-title').textContent()) ?? ''
+
+await page.locator('.driver-popover-next-btn').click() // → Buy or craft?
+await page.waitForTimeout(350)
+ok('reaches the buy/craft step', /buy or craft/i.test(await stepTitle()))
+
+// clicking the highlighted buy toggle demonstrates it AND advances the tour
+await page.locator('.toggle-buy').first().click({ force: true })
+await page.waitForTimeout(800)
+ok('clicking the buy toggle advances the tour', /orders/i.test(await stepTitle()), `title=${await stepTitle()}`)
+
+await page.locator('.driver-popover-next-btn').click() // → shopping list
+await page.waitForTimeout(350)
+ok('reaches the shopping step', /shopping/i.test(await stepTitle()))
+
+await page.locator('.driver-popover-next-btn').click() // → facility mode
+await page.waitForTimeout(750)
+ok('reaches the facility step', /facility mode/i.test(await stepTitle()))
+ok(
+  'facility step turns facility mode on so the edit button is live',
+  (await page.locator('.facility-panel.off').count()) === 0,
+)
+
+await page.locator('.driver-popover-next-btn').click() // → ship time
+await page.waitForTimeout(350)
+ok('reaches the ship time step', /ship time/i.test(await stepTitle()))
+
+await page.locator('.driver-popover-next-btn').click() // → done
+await page.waitForTimeout(350)
+ok('walkthrough closes on the final step', (await page.locator('.driver-popover').count()) === 0)
 ok(
   'walkthrough marked seen',
   (await page.evaluate(() => localStorage.getItem('shc-tour-v1'))) === 'done',
 )
 // replay on a populated board: classic tour with next buttons
-await page.locator('.fac-help').click()
+await page.locator('.canvas-help').click()
 await page.waitForSelector('.driver-popover', { timeout: 3000 })
 ok('help button replays the walkthrough off-rails', await page.locator('.driver-popover-next-btn').isVisible())
 await page.locator('.driver-popover-close-btn').click()

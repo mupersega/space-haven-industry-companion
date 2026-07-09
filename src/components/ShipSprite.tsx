@@ -29,7 +29,9 @@ const BLOOM_CORE = 0.5
 const BLOOM_RING = 0.09
 
 const imgCache = new Map<string, Promise<HTMLImageElement>>()
-function loadImage(src: string): Promise<HTMLImageElement> {
+/** Decode-and-cache a sprite. Exported so the gate can preload every ship up
+ * front — warming this same cache means the ships render instantly on mount. */
+export function loadImage(src: string): Promise<HTMLImageElement> {
   let p = imgCache.get(src)
   if (!p) {
     p = new Promise((resolve, reject) => {
@@ -259,9 +261,23 @@ export interface ShipSpriteProps {
   sunDy: number
   /** authored thruster/light glows, coords relative to the unflipped sprite */
   glows: ThrusterGlow[]
+  /** stagger (seconds) for the first-load warp-in — later ships arrive later */
+  warpDelay: number
 }
 
-export function ShipSprite({ src, width, flip, drift, delay, left, top, sunDx, sunDy, glows }: ShipSpriteProps) {
+export function ShipSprite({
+  src,
+  width,
+  flip,
+  drift,
+  delay,
+  left,
+  top,
+  sunDx,
+  sunDy,
+  glows,
+  warpDelay,
+}: ShipSpriteProps) {
   const ref = useRef<HTMLCanvasElement>(null)
   const boostRefs = useRef<Array<HTMLCanvasElement | null>>([])
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null)
@@ -314,6 +330,13 @@ export function ShipSprite({ src, width, flip, drift, delay, left, top, sunDx, s
         maxWidth: `${Math.round((width * padScale) / 14)}vw`,
       }}
     >
+      {/* first-load warp-in: streaks the ship in from off-screen, staggered by
+          --warp-delay. Sits OUTSIDE the drift so the two transforms compose —
+          the warp settles to translate(0,0) and the drift takes over. */}
+      <div
+        className="wg-ship-warp"
+        style={{ '--warp-delay': `${warpDelay}s` } as React.CSSProperties}
+      >
       {/* the surge animation lives here, OUTSIDE the flip, so flipped
           escorts still travel the same screen heading; keyframes are
           var()-free so it runs on the compositor. Negative delay starts
@@ -366,6 +389,7 @@ export function ShipSprite({ src, width, flip, drift, delay, left, top, sunDx, s
             <span className="wg-glow-core" />
           </span>
         ))}
+      </div>
       </div>
       </div>
     </div>

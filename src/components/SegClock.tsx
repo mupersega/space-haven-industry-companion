@@ -52,33 +52,27 @@ function Digit({ value }: { value: string }) {
   )
 }
 
-interface BrisbaneTime {
+interface ClockTime {
   hh: string
   mm: string
   ss: string
   tick: boolean
 }
 
-function brisbaneParts(date = new Date()): BrisbaneTime {
-  const parts = new Intl.DateTimeFormat('en-AU', {
-    timeZone: 'Australia/Brisbane',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).formatToParts(date)
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00'
-  return { hh: get('hour'), mm: get('minute'), ss: get('second'), tick: Number(get('second')) % 2 === 0 }
+/** The viewer's own local wall-clock time. */
+function localParts(date = new Date()): ClockTime {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const s = date.getSeconds()
+  return { hh: pad(date.getHours()), mm: pad(date.getMinutes()), ss: pad(s), tick: s % 2 === 0 }
 }
 
-/** Epoch ms of the next occurrence of HH:MM on the Brisbane wall clock. */
-function nextBrisbane(hhmm: string): number {
+/** Epoch ms of the next occurrence of HH:MM on the local wall clock. */
+function nextLocal(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
-  const now = brisbaneParts()
-  const nowSec = Number(now.hh) * 3600 + Number(now.mm) * 60 + Number(now.ss)
-  let delta = h * 3600 + m * 60 - nowSec
-  if (delta <= 0) delta += 86400
-  return Date.now() + delta * 1000
+  const target = new Date()
+  target.setHours(h, m, 0, 0)
+  if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1)
+  return target.getTime()
 }
 
 const ALARM_KEY = 'shc-alarm-v1'
@@ -176,7 +170,7 @@ function loadAlarm(): number | null {
 }
 
 export function SegClock() {
-  const [time, setTime] = useState(brisbaneParts)
+  const [time, setTime] = useState(localParts)
   const [alarmAt, setAlarmAt] = useState<number | null>(loadAlarm)
   const [open, setOpen] = useState(false)
   const [ringing, setRinging] = useState(false)
@@ -199,7 +193,7 @@ export function SegClock() {
 
   useEffect(() => {
     const t = setInterval(() => {
-      setTime(brisbaneParts())
+      setTime(localParts())
       const at = alarmRef.current
       if (at !== null) {
         const left = at - Date.now()
@@ -255,7 +249,7 @@ export function SegClock() {
     setCustom('')
   }
 
-  const alarmLabel = alarmAt ? brisbaneParts(new Date(alarmAt)) : null
+  const alarmLabel = alarmAt ? localParts(new Date(alarmAt)) : null
   const wobble = ringing ? 1 : warm
 
   return (
@@ -264,7 +258,7 @@ export function SegClock() {
         className={`seg-row${wobble !== null ? ' wobble' : ''}`}
         style={wobble !== null ? ({ '--wob': `${(0.5 + wobble * 2.5).toFixed(2)}deg` } as React.CSSProperties) : undefined}
         role="timer"
-        aria-label={`${time.hh}:${time.mm} in Brisbane`}
+        aria-label={`Local time ${time.hh}:${time.mm}`}
         data-time={`${time.hh}:${time.mm}`}
       >
         <Digit value={time.hh[0]} />
@@ -278,7 +272,7 @@ export function SegClock() {
         {alarmLabel ? (
           <button
             className="alarm-chip set nodrag"
-            data-tip={`Alarm ${alarmLabel.hh}:${alarmLabel.mm} — click to cancel`}
+            data-tip={`Alarm ${alarmLabel.hh}:${alarmLabel.mm}, click to cancel`}
             onClick={() => setAlarmAt(null)}
           >
             <BellIcon size={8} />
@@ -309,7 +303,7 @@ export function SegClock() {
             <button
               className="use-default"
               disabled={!/^\d\d:\d\d$/.test(custom)}
-              onClick={() => arm(nextBrisbane(custom))}
+              onClick={() => arm(nextLocal(custom))}
             >
               set
             </button>

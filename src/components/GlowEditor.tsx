@@ -180,7 +180,7 @@ export function GlowEditor({ glows, onChange }: GlowEditorProps) {
                     <button
                       key={i}
                       className="glow-mark"
-                      data-tip={`${m.shape} · ${m.layer} · ${m.angle ?? 0}° — click to remove, Ctrl+click to stack`}
+                      data-tip={`${m.shape} · ${m.layer} · ${m.angle ?? 0}° · click to remove, Ctrl+click to stack`}
                       style={
                         {
                           left: `${m.x * 100}%`,

@@ -241,6 +241,59 @@ body {
   text-transform: uppercase;
   color: var(--ink);
 }
+/* walkthrough trigger, tucked into the canvas top-left corner (away from
+   the facility controls at the top-right and the flow controls bottom-left) */
+.canvas-help {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 12;
+  width: 32px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--dim);
+  cursor: pointer;
+}
+.canvas-help:hover {
+  background: var(--panel);
+  color: var(--teal);
+  border-color: var(--line-strong);
+}
+/* on an empty board the walkthrough is the one thing worth noticing — a slow,
+   subtle teal breath draws the eye without shouting. Hover pauses it, and it
+   respects reduced-motion (settling to a static teal highlight instead). */
+@keyframes canvas-help-pulse {
+  0%,
+  100% {
+    color: var(--dim);
+    border-color: var(--line);
+    box-shadow: 0 0 0 0 rgba(69, 213, 194, 0);
+  }
+  50% {
+    color: var(--teal);
+    border-color: var(--teal);
+    box-shadow: 0 0 9px 1px rgba(69, 213, 194, 0.4);
+  }
+}
+.canvas-help.pulse {
+  animation: canvas-help-pulse 2.6s ease-in-out infinite;
+}
+.canvas-help.pulse:hover {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-help.pulse {
+    animation: none;
+    color: var(--teal);
+    border-color: var(--teal);
+  }
+}
 
 /* ---- Sidebar (right ledger) ---- */
 .sidebar {
@@ -295,6 +348,52 @@ body {
   position: absolute;
   right: 10px;
   bottom: 8px;
+}
+/* back-to-launch-screen, docked top-right of the masthead (clock owns
+   bottom-right). Not a chip — a bare amber chevron sitting on a baseline (the
+   bottom border = the launch pad): "_^_", land then up. Amber + glow matches the
+   clock's lit segments; a dark shadow keeps it legible over the fleet artwork. */
+.brand .brand-back {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2px 3px 3px;
+  border: none;
+  border-bottom: 3px solid var(--amber);
+  background: none;
+  color: var(--amber);
+  line-height: 0;
+  cursor: pointer;
+  filter:
+    drop-shadow(0 0 3px rgba(255, 180, 84, 0.5))
+    drop-shadow(0 1px 1px rgba(5, 9, 18, 0.85));
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    filter 160ms ease;
+}
+/* the chevron lifts off its pad on hover — a little pre-launch hop */
+.brand .brand-back svg {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.brand .brand-back:hover {
+  color: #ffd68f;
+  border-color: #ffd68f;
+  filter:
+    drop-shadow(0 0 6px rgba(255, 200, 120, 0.85))
+    drop-shadow(0 1px 1px rgba(5, 9, 18, 0.85));
+}
+.brand .brand-back:hover svg {
+  transform: translateY(-2px);
+}
+.brand .brand-back:focus-visible {
+  outline: none;
+  color: #ffd68f;
+  border-color: #ffd68f;
 }
 .brand .seg-row {
   padding: 2px 3px;
@@ -1349,7 +1448,9 @@ body {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: var(--void);
+  /* landing base: a deep aubergine-navy (rgb 26 22 40), matched to the inline
+     html/body flash colour so the load is seamless */
+  background: #1a1628;
   overflow: hidden;
   display: flex;
   align-items: flex-end;
@@ -1358,6 +1459,133 @@ body {
 .welcome-gate.exiting {
   opacity: 0;
   pointer-events: none;
+}
+/* ---- load gate: the scene stays hidden until WelcomeGate flips `wg-ready`
+   (assets decoded + backdrop/planet first frame painted), then it ARRIVES. The
+   planet + systems materialise (scale-up + fade) inside .wg-materialize; the
+   ships and copy fade in. The tuner/glow widgets are NOT covered. ---- */
+.wg-materialize {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: center;
+  transition: opacity 800ms ease;
+}
+.wg-ship {
+  transition: opacity 700ms ease;
+}
+.welcome-gate:not(.wg-ready) .wg-materialize,
+.welcome-gate:not(.wg-ready) .wg-ship,
+.welcome-gate:not(.wg-ready) .welcome-content {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* the scale-up "arrive" is motion — reduced-motion gets a clean fade instead */
+  .wg-materialize {
+    transition:
+      opacity 800ms ease,
+      transform 950ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .welcome-gate:not(.wg-ready) .wg-materialize {
+    transform: scale(0.94);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* motion path: the ships don't just fade — they WARP in from off the left
+     edge, streaked wide, ship by ship (staggered by --warp-delay), the flagship
+     last. The .wg-ship opacity hold is released here so the plain fade doesn't
+     fight the warp; the .wg-ship-warp wrapper owns entrance opacity + transform.
+     The warp settles to translate(0,0) and the inner drift takes over. */
+  .welcome-gate:not(.wg-ready) .wg-ship {
+    opacity: 1;
+  }
+  .wg-ship-warp {
+    will-change: transform, opacity;
+    /* lead time so the SPACE HAVEN title + subtitle land FIRST, THEN the fleet
+       warps in — plus the per-ship stagger on top */
+    animation-delay: calc(0.6s + var(--warp-delay, 0s));
+  }
+  /* pre-warp rest: parked off the upper-left, streaked ALONG the ships' iso
+     heading (a shallow 2:1 / 26.5deg down-right axis — the rotate/scale/rotate
+     stretches the streak along the travel line, not flat-horizontal), invisible.
+     Matches keyframe 0% so the not-ready → ready flip is seamless (fill-mode:
+     both holds this during the stagger delay). */
+  .welcome-gate:not(.wg-ready) .wg-ship-warp {
+    transform: translate(-110vw, -55vw) rotate(26.5deg) scale(2.6, 1) rotate(-26.5deg);
+    opacity: 0;
+  }
+  .welcome-gate.wg-ready .wg-ship-warp {
+    animation-name: wg-warp;
+    /* one smooth deceleration that READS as two moments: a fast expo-out ZOOM
+       covers ~90% of the distance in the first ~third, then the curve's long tail
+       becomes a slow decelerating SETTLE that eases the ship to an absolute dead
+       stop — no overshoot, no velocity kink. Kept long (850ms) so the settle has
+       real room to breathe instead of being crammed in. */
+    animation-duration: 850ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+  }
+  /* warp "energy" tint, locked to each ship's own warp (same 0.6s lead + stagger
+     + 440ms run). While streaking the sprite is a monotone warp-blue; at the
+     impact beat it blows out to WHITE, then resolves to its true colours. Driven
+     on .wg-ship-flip so the canvas + engine glows all tint as one. `linear` so
+     the flash lands at a predictable % of the run. */
+  .welcome-gate.wg-ready .wg-ship-flip {
+    animation: wg-warp-tint 850ms linear both;
+    animation-delay: calc(0.6s + var(--warp-delay, 0s));
+  }
+}
+/* warp-in along the ships' heading: they enter from off the upper-left and run
+   DOWNHILL to the lower-right on a shallow 2:1 isometric axis (26.5deg). The
+   rotate(26.5) scale(k,1) rotate(-26.5) sandwich stretches the motion-streak
+   along that travel line while keeping the sprite upright and un-rotated; the
+   streak resolves to scale(1) as the ship decelerates into place. Both offsets
+   are in vw so the x:y pixel ratio is a true 2:1 (matching the streak angle). */
+@keyframes wg-warp {
+  0% {
+    transform: translate(-110vw, -55vw) rotate(26.5deg) scale(2.6, 1) rotate(-26.5deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(0, 0) rotate(26.5deg) scale(1, 1) rotate(-26.5deg);
+    opacity: 1;
+  }
+}
+/* warp-energy colour ramp. ONE consistent filter chain in every stop
+   (brightness → sepia → hue-rotate → saturate → two drop-shadows) so every value
+   interpolates smoothly instead of snapping. sepia(1) forces the sprite
+   monochrome and a slightly-dark brightness flattens the interior detail, then
+   hue-rotate+saturate steer that monochrome to an electric blue; the two
+   drop-shadows are SHAPE-AWARE (they hug the sprite's alpha, not its box) — a
+   tight bright rim + a softer wider halo = the electric-blue outline. At the
+   landing beat it desaturates, over-brightens and whitens the rim into a flash,
+   then everything unwinds to filter-identity (the ship's real colours, no rim). */
+@keyframes wg-warp-tint {
+  0% {
+    filter: brightness(0.82) sepia(1) hue-rotate(180deg) saturate(9)
+      drop-shadow(0 0 2px rgba(150, 226, 255, 0.95)) drop-shadow(0 0 7px rgba(40, 150, 255, 0.8));
+  }
+  22% {
+    filter: brightness(1.15) sepia(1) hue-rotate(180deg) saturate(9)
+      drop-shadow(0 0 3px rgba(150, 226, 255, 1)) drop-shadow(0 0 10px rgba(40, 150, 255, 0.85));
+  }
+  30% {
+    /* the flash peaks as the fast zoom decelerates in (~90% arrived) — then
+       step-end HOLDS it and cuts to full colour with NO tween, so the glow
+       vanishes instantaneously right as the slow settle begins (that last gentle
+       decel into place happens entirely in true colour, no rim) */
+    filter: brightness(3) sepia(0) hue-rotate(180deg) saturate(0)
+      drop-shadow(0 0 6px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 14px rgba(170, 224, 255, 0.7));
+    animation-timing-function: step-end;
+  }
+  33% {
+    filter: brightness(1) sepia(0) hue-rotate(0deg) saturate(1)
+      drop-shadow(0 0 0 rgba(150, 226, 255, 0)) drop-shadow(0 0 0 rgba(40, 150, 255, 0));
+  }
+  100% {
+    filter: brightness(1) sepia(0) hue-rotate(0deg) saturate(1)
+      drop-shadow(0 0 0 rgba(150, 226, 255, 0)) drop-shadow(0 0 0 rgba(40, 150, 255, 0));
+  }
 }
 @media (prefers-reduced-motion: no-preference) {
   .welcome-gate {
@@ -1542,7 +1770,7 @@ body {
   border-color: var(--line-strong);
 }
 .tuner-panel {
-  width: 272px;
+  width: 316px;
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -1550,16 +1778,27 @@ body {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  /* only a genuine safety valve for very short screens; the panel is sized to
+     hold its full content on any normal display, so it never scrolls in practice */
+  max-height: calc(100vh - 68px);
+  overflow-y: auto;
 }
 .tuner-row {
   display: grid;
-  grid-template-columns: 78px 1fr 38px;
+  /* value column is wide enough for the longest readouts (#rrggbb, 0.0100) so
+     nothing clips */
+  grid-template-columns: 82px 1fr 54px;
   align-items: center;
   gap: 8px;
 }
 .tuner-worlds {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+}
+.tuner-worlds .pal-chip {
+  /* three-up, wrapping to a second row as more worlds are added (lava, …) */
+  flex: 1 1 28%;
 }
 .pal-chip {
   flex: 1;
@@ -1589,6 +1828,7 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--dim);
+  white-space: nowrap;
 }
 .tuner-row input[type='range'] {
   accent-color: var(--teal);
@@ -1598,6 +1838,8 @@ body {
   font-size: 10px;
   color: var(--amber);
   text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .tuner-actions {
   display: flex;
@@ -1606,6 +1848,11 @@ body {
 }
 .tuner-actions .use-default {
   flex: 1;
+}
+/* return-to-default gets its own full-width row so its intent is unmistakable */
+.tuner-reset {
+  width: 100%;
+  margin-top: 6px;
 }
 .wg-planet {
   position: absolute;
@@ -1877,19 +2124,20 @@ body {
   filter: brightness(1.12);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .welcome-content > * {
+  /* the copy slides up as part of the reveal — only once the gate is ready */
+  .welcome-gate.wg-ready .welcome-content > * {
     animation: welcome-up 600ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
   }
-  .welcome-content > :nth-child(2) {
+  .welcome-gate.wg-ready .welcome-content > :nth-child(2) {
     animation-delay: 120ms;
   }
-  .welcome-content > :nth-child(3) {
+  .welcome-gate.wg-ready .welcome-content > :nth-child(3) {
     animation-delay: 260ms;
   }
-  .welcome-content > :nth-child(4) {
+  .welcome-gate.wg-ready .welcome-content > :nth-child(4) {
     animation-delay: 380ms;
   }
-  .welcome-content > :nth-child(5) {
+  .welcome-gate.wg-ready .welcome-content > :nth-child(5) {
     animation-delay: 500ms;
   }
 }

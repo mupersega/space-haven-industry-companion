@@ -18,6 +18,10 @@ export function tourSeen(): boolean {
  * click assembles the rifle chain, which guarantees every later stop has a
  * real element to point at. Escape and the ✕ stay available as off-ramps.
  * Replays (and boards that already have orders) get the classic tour. */
+// step indices, so the click triggers below don't drift if steps move
+const STEP_RIFLE = 0
+const STEP_BUY = 2
+
 export function startTour(opts: { guided?: boolean } = {}) {
   const guided = opts.guided ?? false
   // seen = it started once — set up front, not in driver's destroy hook,
@@ -27,13 +31,23 @@ export function startTour(opts: { guided?: boolean } = {}) {
   } catch {
     /* private browsing */
   }
-  const onRifleClick = (ev: MouseEvent) => {
-    if (!(ev.target as HTMLElement).closest?.('[data-item="rifle"]')) return
-    document.removeEventListener('click', onRifleClick, true)
-    // let the chain assemble and the layout settle before highlighting it
+  // advance the tour once, after `delay`, only if still parked on `from`
+  const advance = (from: number, delay: number) => {
     setTimeout(() => {
-      if (d.isActive() && d.getActiveIndex() === 0) d.moveNext()
-    }, 700)
+      if (d.isActive() && d.getActiveIndex() === from) d.moveNext()
+    }, delay)
+  }
+  // steps that teach by doing use the real action as the trigger: clicking
+  // the highlighted control advances the tour (the button still does its
+  // normal job — assemble the chain, collapse the subtree — as it goes)
+  const onStepClick = (ev: MouseEvent) => {
+    const t = ev.target as HTMLElement
+    const idx = d.getActiveIndex()
+    if (guided && idx === STEP_RIFLE && t.closest?.('[data-item="rifle"]')) {
+      advance(STEP_RIFLE, 700) // let the chain assemble + settle
+    } else if (idx === STEP_BUY && t.closest?.('.toggle-buy')) {
+      advance(STEP_BUY, 450) // let the subtree collapse
+    }
   }
   const d = driver({
     showProgress: true,
@@ -50,7 +64,7 @@ export function startTour(opts: { guided?: boolean } = {}) {
     allowClose: true,
     overlayClickBehavior: () => {},
     allowKeyboardControl: false,
-    onDestroyed: () => document.removeEventListener('click', onRifleClick, true),
+    onDestroyed: () => document.removeEventListener('click', onStepClick, true),
     steps: [
       {
         element: '[data-item="rifle"]',
@@ -69,7 +83,7 @@ export function startTour(opts: { guided?: boolean } = {}) {
         popover: {
           title: 'The final product',
           description:
-            'Its production chain expands leftward to base materials. The crafted cost rolls up the whole chain — compare it against the base trade value to see if the thing is worth making.',
+            'Its production chain expands leftward to base materials. The crafted cost rolls up the whole chain. Compare it against the base trade value to see if the thing is worth making.',
           side: 'left',
         },
       },
@@ -78,7 +92,7 @@ export function startTour(opts: { guided?: boolean } = {}) {
         popover: {
           title: 'Buy or craft?',
           description:
-            'Any intermediate can be bought at market instead of crafted. Its subtree collapses and your buy price flows into the cost — handy when a trader is selling below your production cost.',
+            'Any intermediate can be bought at market instead of crafted. Give it a try: click this toggle and watch the subtree collapse. Your buy price now flows straight into the cost, handy when a trader is selling below what it costs you to make.',
           side: 'bottom',
         },
       },
@@ -96,17 +110,29 @@ export function startTour(opts: { guided?: boolean } = {}) {
         popover: {
           title: 'The shopping list',
           description:
-            'Base materials to buy across all orders, with quantities — and the ceiling price you can pay for each before the product stops being worth crafting.',
+            'Base materials to buy across all orders, with quantities, plus the ceiling price you can pay for each before the product stops being worth crafting.',
           side: 'left',
         },
       },
       {
-        element: '.fac-controls',
+        element: '.facility-panel',
+        // switch facility mode ON as this step opens, so the strip is
+        // actually showing and the hammer is enabled — otherwise the copy
+        // points at controls that are hidden or disabled behind the toggle
+        onHighlightStarted: () => {
+          if (document.querySelector('.facility-panel.off')) {
+            ;(document.querySelector('.fac-factory') as HTMLElement | null)?.click()
+            // the strip wipes up to full height — re-measure once it settles
+            setTimeout(() => {
+              if (d.isActive()) d.refresh()
+            }, 500)
+          }
+        },
         popover: {
           title: 'Facility mode',
           description:
-            'The factory toggle shows which facilities the current chains need — red means not built yet. The hammer edits what your ship actually has.',
-          side: 'top',
+            'This strip lists the facilities the current chains rely on. Red means your ship hasn’t built it yet. The factory icon toggles the mode; the hammer lets you mark what you’ve actually built.',
+          side: 'left',
         },
       },
       {
@@ -114,12 +140,12 @@ export function startTour(opts: { guided?: boolean } = {}) {
         popover: {
           title: 'Ship time',
           description:
-            'Brisbane time, bridge style. Click the bell to set a quick alarm — three chiptune jingles, gentle fade-in. Fly safe out there.',
+            'Your local time, bridge style. Click the bell to set a quick alarm: three chiptune jingles, gentle fade-in. Fly safe out there.',
           side: 'left',
         },
       },
     ],
   })
-  if (guided) document.addEventListener('click', onRifleClick, true)
+  document.addEventListener('click', onStepClick, true)
   d.drive()
 }

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_GLOWS } from '../data/defaultGlows'
 import { GlowEditor, type GlowMap } from './GlowEditor'
+import { PlanetGL } from './PlanetGL'
 import { SceneTuner } from './SceneTuner'
-import { ShipSprite } from './ShipSprite'
-import { DEFAULT_SCENE, SpaceBackdrop, type SceneParams } from './SpaceBackdrop'
+import { ShipSprite, loadImage } from './ShipSprite'
+import { SpaceBackdrop } from './SpaceBackdrop'
+import { DEFAULT_SCENE, type SceneParams } from '../lib/spaceRender'
 
 // Two tiers of acknowledgment. Boarding always acks the current browser
 // session (sessionStorage), so a refresh doesn't re-gate. "Remember for
@@ -13,6 +15,7 @@ const WELCOME_KEY = 'shc-welcome-v2'
 const WELCOME_SESSION_KEY = 'shc-welcome-session'
 const SCENE_KEY = 'shc-scene-v1'
 const GLOW_KEY = 'shc-glows-v1'
+const GL_PLANET_KEY = 'shc-gl-planet-v1'
 
 function loadGlows(): GlowMap {
   try {
@@ -45,6 +48,15 @@ function loadScene(): SceneParams {
     return raw ? { ...DEFAULT_SCENE, ...JSON.parse(raw) } : { ...DEFAULT_SCENE }
   } catch {
     return { ...DEFAULT_SCENE }
+  }
+}
+
+function loadGlPlanet(): boolean {
+  try {
+    // shader planet is the default (dev can opt back to drawn via the toggle)
+    return localStorage.getItem(GL_PLANET_KEY) !== '0'
+  } catch {
+    return true
   }
 }
 
@@ -106,6 +118,13 @@ const SHIPS: ShipSpec[] = [
   { src: 'ship-colony', dx: -17, dy: -14, width: 900, drift: 16, delay: 0 },
 ]
 
+// Warp-in cadence, in seconds, added on top of the shared title-lead delay.
+// Deliberately NOT evenly spaced — an even stagger reads as a flat tick-tick-
+// tick. This is a rhythm: two spaced hits, two quick "ticka" bursts, a little
+// double-tap, then the flagship (last spec) lands alone on the emphatic beat.
+//   tah · · tah · · ti-cka · ti-cka · ti-ti · · · TAH
+const WARP_RHYTHM = [0, 0.16, 0.34, 0.4, 0.52, 0.58, 0.7, 0.76, 0.94]
+
 /**
  * First-visit spoiler gate, built from the game's own assets: the main-menu
  * skybox, the official logo, and the background-fleet sprites, the fleet
@@ -117,6 +136,18 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
   const [remember, setRemember] = useState(false)
   const [scene, setScene] = useState<SceneParams>(loadScene)
   const [glows, setGlows] = useState<GlowMap>(loadGlows)
+  // which planet renderer is live — hand-drawn canvas (default) or the GPU
+  // shader planet with live drifting clouds. Toggled from the scene tuner.
+  const [glPlanet, setGlPlanet] = useState(loadGlPlanet)
+  // load gate: hold the scene hidden until sprites are decoded and the backdrop
+  // (+ shader planet, when it's the live renderer) have painted their first
+  // frame — then reveal it all as one clean piece instead of a piecemeal pop-in.
+  const [imagesReady, setImagesReady] = useState(false)
+  const [backdropReady, setBackdropReady] = useState(false)
+  const [planetReady, setPlanetReady] = useState(false)
+  const [forceReady, setForceReady] = useState(false)
+  const showShader = !import.meta.env.DEV || glPlanet
+  const ready = forceReady || (imagesReady && backdropReady && (!showShader || planetReady))
 
   useEffect(() => {
     localStorage.setItem(SCENE_KEY, JSON.stringify(scene))
@@ -124,6 +155,27 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
   useEffect(() => {
     localStorage.setItem(GLOW_KEY, JSON.stringify(glows))
   }, [glows])
+  useEffect(() => {
+    localStorage.setItem(GL_PLANET_KEY, glPlanet ? '1' : '0')
+  }, [glPlanet])
+
+  // preload every ship sprite + the logo up front (warms ShipSprite's shared
+  // cache, so they render instantly on mount rather than popping in one by one)
+  useEffect(() => {
+    let live = true
+    const urls = [...SHIPS.map((s) => `${BASE}scene/${s.src}.png`), `${BASE}scene/logo.png`]
+    void Promise.all(urls.map((u) => loadImage(u).catch(() => null))).then(() => {
+      if (live) setImagesReady(true)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+  // safety net: never leave the scene stuck hidden if a first-frame signal never fires
+  useEffect(() => {
+    const t = window.setTimeout(() => setForceReady(true), 4000)
+    return () => clearTimeout(t)
+  }, [])
 
   // the shimmer ticker: engine flicker and boost breathing at ~12Hz from a
   // single loop. Ambient FX don't need 60fps — and a second concurrent CSS
@@ -178,13 +230,26 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
 
   return (
     <div
-      className={`welcome-gate${exiting ? ' exiting' : ''}`}
+      className={`welcome-gate${ready ? ' wg-ready' : ''}${exiting ? ' exiting' : ''}`}
       role="dialog"
       aria-label="Spoiler warning"
     >
-      <SpaceBackdrop params={scene} />
-      <SceneTuner params={scene} onChange={setScene} />
-      <GlowEditor glows={glows} onChange={setGlows} />
+      {/* the planet + systems live in a materialise wrapper: on `wg-ready` they
+          scale up from a hair under 1.0 and fade in, so the world *arrives*.
+          (Canvas sizing uses clientWidth, immune to this transform's scale.) */}
+      <div className="wg-materialize">
+        <SpaceBackdrop params={scene} onReady={() => setBackdropReady(true)} />
+        {/* the GPU shader planet overlays the canvas one at the same placement.
+            Production always uses it (the drawn↔shader toggle is dev-only); it
+            self-checks for WebGL2 and no-ops (leaving the canvas planet showing)
+            where it isn't available. */}
+        {showShader && <PlanetGL params={scene} onReady={() => setPlanetReady(true)} />}
+      </div>
+      {/* Scene tuner ships to everyone — visitors can play with the world.
+          The glow author is a local-only dev tool: gated to `vite dev`, it is
+          dead-code-eliminated from production builds. */}
+      <SceneTuner params={scene} onChange={setScene} glPlanet={glPlanet} onGlPlanetChange={setGlPlanet} />
+      {import.meta.env.DEV && <GlowEditor glows={glows} onChange={setGlows} />}
       {SHIPS.map((s, i) => {
         const left = scene.fleetX * 100 + s.dx
         const top = scene.fleetY * 100 + s.dy
@@ -206,6 +271,7 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
               sunDx={dx / len}
               sunDy={dy / len}
               glows={glows[s.src] ?? []}
+              warpDelay={WARP_RHYTHM[i] ?? i * 0.1}
             />
           </div>
         )

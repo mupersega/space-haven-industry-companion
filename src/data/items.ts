@@ -6,7 +6,7 @@
 // (XML maxPrice data). In-game buy offers usually run 5–6× sell prices, so
 // treat these as a baseline and edit to what traders actually quote you.
 
-export type Category = 'raw' | 'grown' | 'trade' | 'refined' | 'component' | 'product' | 'scrap'
+export type Category = 'raw' | 'grown' | 'food' | 'trade' | 'refined' | 'component' | 'product' | 'scrap' | 'corpse'
 
 export interface Ingredient {
   itemId: string
@@ -34,11 +34,13 @@ export interface ItemDef {
 export const CATEGORY_META: Record<Category, { label: string; color: string }> = {
   raw: { label: 'Asteroid raw', color: '#d9a05b' },
   grown: { label: 'Grown', color: '#7ed491' },
+  food: { label: 'Food', color: '#ef7d76' },
   trade: { label: 'Trade only', color: '#a78bfa' },
   refined: { label: 'Refined', color: '#45d5c2' },
   component: { label: 'Component', color: '#5ba8ff' },
   product: { label: 'Fabricator item', color: '#ffb454' },
   scrap: { label: 'Salvage', color: '#c9856b' },
+  corpse: { label: 'Corpse', color: '#8f97a3' },
 }
 
 const defs: ItemDef[] = [
@@ -50,8 +52,16 @@ const defs: ItemDef[] = [
   { id: 'base-metals', name: 'Base Metals', category: 'raw', defaultPrice: 75 },
   { id: 'noble-metals', name: 'Noble Metals', category: 'raw', defaultPrice: 100 },
   { id: 'raw-chemicals', name: 'Raw Chemicals', category: 'raw', defaultPrice: 100 },
+  {
+    id: 'basic-ore', name: 'Basic Ore', category: 'raw', defaultPrice: 40,
+    notes: 'Unrefined asteroid rock that shows up in trade holds. Not a standard production input — you normally mine finished resources directly.',
+  },
+  {
+    id: 'exotic-ore', name: 'Exotic Ore', category: 'raw', defaultPrice: 50,
+    notes: 'Unrefined exotic asteroid rock. A trade curiosity more than a crafting material in the current version.',
+  },
 
-  // ---- Grown / organic ----
+  // ---- Grown / organic (non-food crops & byproducts) ----
   {
     id: 'fibers', name: 'Fibers', category: 'grown',
     facility: 'Grow Bed', industry: 1,
@@ -61,12 +71,36 @@ const defs: ItemDef[] = [
     ],
     defaultPrice: 200,
   },
-  { id: 'fruits', name: 'Fruits', category: 'grown', defaultPrice: 250 },
   { id: 'alien-organs', name: 'Alien Organs', category: 'grown', defaultPrice: 50 },
   {
     id: 'bio-matter', name: 'Bio Matter', category: 'grown', defaultPrice: 50,
     notes:
-      'No crafting use. Composter turns 1 into a trickle of Water (~0.1) + Fertilizer + Carbon (~0.017 each, ~11 cr of goods) — for closing the farm loop, not profit. Also feeds Algae Dispensers (low-grade food) and builds lawn tiles. Selling at 50 cr is usually its best use.',
+      'No crafting use. A Composter turns 1 unit into a trickle of Water (~0.1), Fertilizer, and Carbon (~0.017 each, about 11 cr of goods), which closes the farm loop but is not worth it for profit. It also feeds Algae Dispensers for low-grade food and builds lawn tiles. Selling at 50 cr is usually its best use.',
+  },
+
+  // ---- Food (grow-bed crops, butchered meat, or processed rations) ----
+  // Base trade goods with no per-unit chain — they pin as standalone priced
+  // nodes so you can price-check food the way you price-check materials.
+  { id: 'fruits', name: 'Fruits', category: 'food', defaultPrice: 250 },
+  { id: 'root-vegetables', name: 'Root Vegetables', category: 'food', defaultPrice: 250 },
+  { id: 'nuts-and-seeds', name: 'Nuts and Seeds', category: 'food', defaultPrice: 300 },
+  { id: 'grains-and-hops', name: 'Grains and Hops', category: 'food', defaultPrice: 300 },
+  { id: 'artificial-meat', name: 'Artificial Meat', category: 'food', defaultPrice: 375 },
+  {
+    id: 'monster-meat', name: 'Monster Meat', category: 'food', defaultPrice: 40,
+    notes: 'Butchered from dead space monsters — loot, not farmed. Feeds the crew or sells like any other meat.',
+  },
+  {
+    id: 'human-meat', name: 'Human Meat', category: 'food', defaultPrice: 75,
+    notes: 'Butchered from corpses. A grim food source, but it trades like meat.',
+  },
+  {
+    id: 'processed-food', name: 'Processed Food', category: 'food', defaultPrice: 125,
+    notes: 'Cooked at a Food Processor from a mix of raw crops and meat. No fixed per-unit recipe, so it sits here as a base trade good.',
+  },
+  {
+    id: 'space-food', name: 'Space Food', category: 'food', defaultPrice: 100,
+    notes: 'Long-shelf-life rations packed at a Food Processor. Cheap to trade and handy for long hauls.',
   },
 
   // ---- Trade / loot only (no crafting recipe in game) ----
@@ -134,10 +168,42 @@ const defs: ItemDef[] = [
     ],
     defaultPrice: 50,
   },
+
+  // ---- Corpses (combat loot — free, but you butcher or recycle them) ----
+  // Not tradeable (no trade value in game). Modelled like salvage: pin one to
+  // see what it breaks down into. Butcher yields are per corpse and vary with
+  // creature size (~3–4 meat), so treat the amounts as an editable estimate.
+  {
+    id: 'alien-corpse', name: 'Alien Corpse', category: 'corpse',
+    salvage: [{ itemId: 'monster-meat', qty: 3.5 }],
+    notes: 'Butchered at an Autopsy Table into ~3–4 Monster Meat, or composted into Bio Matter. Free combat loot — no trade value of its own.',
+  },
+  {
+    id: 'human-corpse', name: 'Human Corpse', category: 'corpse',
+    salvage: [{ itemId: 'human-meat', qty: 3.5 }],
+    notes: 'Butchered at an Autopsy Table into ~3–4 Human Meat, or composted into Bio Matter. Grim, but a real food/credit source in a pinch.',
+  },
+  {
+    id: 'android-corpse', name: 'Android Corpse', category: 'corpse',
+    notes: 'No yield — an android corpse can’t be butchered or composted, so most players just eject it. Mechanical drone wrecks are different: those leave Rubble, which recycles into Steel Plates.',
+  },
+
   { id: 'human-organs', name: 'Human Organs', category: 'trade', defaultPrice: 50 },
   { id: 'mild-alcohol', name: 'Mild Alcohol', category: 'trade', defaultPrice: 25 },
   { id: 'painkillers', name: 'Painkillers', category: 'trade', defaultPrice: 20 },
   { id: 'bandage', name: 'Bandage', category: 'trade', defaultPrice: 20 },
+  {
+    id: 'broken-weapon', name: 'Broken Weapon', category: 'trade', defaultPrice: 10,
+    notes: 'Battle loot. Sell it as-is or recycle at the Recycler for a few parts.',
+  },
+  {
+    id: 'broken-armor', name: 'Broken Armor', category: 'trade', defaultPrice: 10,
+    notes: 'Battle loot. Sell it as-is or recycle at the Recycler for a few parts.',
+  },
+  {
+    id: 'broken-weapon-attachment', name: 'Broken Weapon Attachment', category: 'trade', defaultPrice: 10,
+    notes: 'Battle loot. Sell it as-is or recycle at the Recycler for a few parts.',
+  },
 
   // ---- Refined materials ----
   {

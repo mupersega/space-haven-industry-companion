@@ -76,6 +76,34 @@ function loadState(): AppState {
 
 const nodeTypes = { item: ItemNode }
 
+function HelpIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.1 15.9a1.4 1.4 0 1 1 0-2.8 1.4 1.4 0 0 1 0 2.8zm2.2-7.2c-.8.7-1.3 1.2-1.3 2.3h-2c0-1.8.9-2.6 1.8-3.3.7-.6 1.2-1 1.2-1.8 0-.9-.8-1.5-1.9-1.5-1.2 0-2 .7-2.2 1.8l-1.9-.5C8.4 5.8 9.9 4.5 12 4.5c2.3 0 4 1.3 4 3.3 0 1.5-.9 2.3-1.7 2.9z" />
+    </svg>
+  )
+}
+
+// single upward chevron sitting above a baseline (the button's bottom border) —
+// reads as "_^_": land, then launch up. Back to the launch screen.
+function LaunchIcon() {
+  return (
+    <svg
+      width="15"
+      height="10"
+      viewBox="0 0 24 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="4.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 13l6-7 6 7" />
+    </svg>
+  )
+}
+
 export default function App() {
   const [state, setState] = useState<AppState>(loadState)
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -87,6 +115,13 @@ export default function App() {
     // the gate fades for 650ms over the freshly mounted calculator
     setTimeout(() => setGateGone(true), 700)
   }
+  // re-open the landing page from the workshop. The gate remounts over the app
+  // (which unmounts beneath it); board state is persisted, so boarding again
+  // drops the visitor back onto the same manifest.
+  const goToLanding = useCallback(() => {
+    setWelcomed(false)
+    setGateGone(false)
+  }, [])
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
@@ -144,11 +179,11 @@ export default function App() {
   const toggleBuy = useCallback((id: string) => {
     setState((s) => {
       if (s.buyList.includes(id)) return { ...s, buyList: s.buyList.filter((b) => b !== id) }
-      // Prefill the buy price with the current crafted cost so the number
-      // doesn't jump to an unrelated default.
-      const crafted = computeCosts([id], s.prices, new Set(s.buyList)).get(id) ?? 0
-      const prices = s.prices[id] !== undefined ? s.prices : { ...s.prices, [id]: Number(crafted.toFixed(1)) }
-      return { ...s, prices, buyList: [...s.buyList, id] }
+      // Don't prefill a price. A bought item with no user-entered trader price
+      // falls back to its base trade value (priceOf in cost.ts). Writing the
+      // crafted cost here would masquerade as a user price — the wrong default,
+      // and a stale residual that lingers after toggling back to craft.
+      return { ...s, buyList: [...s.buyList, id] }
     })
   }, [])
 
@@ -400,13 +435,19 @@ export default function App() {
             <Controls showInteractive={false} />
           </ReactFlow>
         )}
+        <button
+          className={`canvas-help${orders.length === 0 ? ' pulse' : ''}`}
+          data-tip="Show the walkthrough"
+          onClick={() => startTour({ guided: orders.length === 0 })}
+        >
+          <HelpIcon />
+        </button>
         <FacilityPanel
           mode={state.facilityMode}
           onMode={(on) => setState((s) => ({ ...s, facilityMode: on }))}
           flowNames={flowFacilities.map((f) => f.facility)}
           builtSet={builtSet}
           onToggleBuilt={toggleBuilt}
-          onHelp={startTour}
         />
       </main>
 
@@ -424,6 +465,14 @@ export default function App() {
             <h1 className="brand-title">Production Ledger</h1>
           </div>
           <SegClock />
+          <button
+            className="brand-back"
+            data-tip="Back to the landing page"
+            aria-label="Back to the landing page"
+            onClick={goToLanding}
+          >
+            <LaunchIcon />
+          </button>
         </header>
 
         <section className="panel" data-tour="orders">

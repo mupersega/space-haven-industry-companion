@@ -57,9 +57,13 @@ export function ItemNode({ data }: NodeProps<ItemFlowNode>) {
     const marketEyebrow: Record<string, string> = {
       raw: 'raw resource · mined or bought',
       grown: 'grown · harvested or bought',
+      food: 'food · grown, butchered, or processed',
       trade: 'trade good · not craftable',
       scrap: 'salvage · recycles at Recycler',
+      corpse: 'corpse · combat loot',
     }
+    // Corpses break down at an Autopsy Table, not the Recycler.
+    const salvageVerb = item.category === 'corpse' ? 'butcher' : 'recycle'
     const profit = data.targetPrice !== undefined ? data.targetPrice - data.unitCost : undefined
     return (
       <div
@@ -75,7 +79,7 @@ export function ItemNode({ data }: NodeProps<ItemFlowNode>) {
         {isMarket && (
           <button
             className="node-worth nodrag"
-            data-tip="Material worth — best use across all products"
+            data-tip="Material worth: best use across all products"
             onClick={() => data.onWorth(data.itemId)}
           >
             ⚖
@@ -133,7 +137,7 @@ export function ItemNode({ data }: NodeProps<ItemFlowNode>) {
           <div className={`root-verdict ${data.yieldPerUnit >= data.unitCost ? 'good' : 'bad'}`}>
             ♻ yields {fmtCr(data.yieldPerUnit)} cr/unit —{' '}
             {data.yieldPerUnit >= data.unitCost
-              ? `recycle, +${fmtCr(data.yieldPerUnit - data.unitCost)} cr/unit`
+              ? `${salvageVerb}, +${fmtCr(data.yieldPerUnit - data.unitCost)} cr/unit`
               : `${fmtCr(data.unitCost - data.yieldPerUnit)} cr/unit under buy price`}
           </div>
         )}
@@ -154,7 +158,7 @@ export function ItemNode({ data }: NodeProps<ItemFlowNode>) {
       {data.hasConsumers && <Handle type="source" position={Position.Right} className="handle" />}
       <button
         className="node-worth nodrag"
-        data-tip="Material worth — best use across all products"
+        data-tip="Material worth: best use across all products"
         onClick={() => data.onWorth(data.itemId)}
       >
         ⚖
