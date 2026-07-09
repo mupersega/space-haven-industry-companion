@@ -32,7 +32,11 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
-      - run: npm ci
+      # npm install, not npm ci: the lockfile is generated on Windows and omits
+      # the Linux-only @emnapi/@napi-rs optional deps that Rolldown pulls in, so
+      # strict `npm ci` rejects it. `npm install` honours the lockfile where it
+      # is in sync and reconciles those optional deps for the runner's platform.
+      - run: npm install --no-audit --no-fund
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
