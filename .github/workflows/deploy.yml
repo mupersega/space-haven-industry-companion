@@ -27,9 +27,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # configure-pages enables Pages (GitHub Actions source) on first run, so
-      # the repo needs no manual Settings toggle.
+      # enablement:true turns Pages on (GitHub Actions source) from the workflow
+      # itself, so a brand-new repo needs no manual Settings toggle.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - run: npm ci
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
