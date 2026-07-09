@@ -76,91 +76,11 @@ function nextLocal(hhmm: string): number {
 }
 
 const ALARM_KEY = 'shc-alarm-v1'
-const JINGLE_KEY = 'shc-jingle-v1'
 
-// Original BeepBox-style chiptune jingles: square lead (+ detuned double
-// for chorus shimmer) over triangle bass. Notes are [freq Hz, start s, dur s].
-type Notes = Array<[number, number, number]>
-interface Jingle {
-  name: string
-  lead: Notes
-  bass: Notes
-}
+/** The alarm sound: a local sample, looped and faded in when the alarm fires. */
+const ALARM_SRC = `${import.meta.env.BASE_URL}audio/alarmbell.mp3`
 
-const JINGLES: Record<string, Jingle> = {
-  sunrise: {
-    name: 'Cargo Bay Sunrise',
-    lead: [
-      [659.25, 0.0, 0.11], [783.99, 0.13, 0.11], [1046.5, 0.26, 0.2],
-      [783.99, 0.5, 0.11], [880.0, 0.63, 0.11], [1046.5, 0.76, 0.18],
-      [1174.66, 0.97, 0.11], [1318.51, 1.1, 0.42],
-    ],
-    bass: [
-      [130.81, 0.0, 0.45], [98.0, 0.5, 0.42], [110.0, 0.97, 0.5],
-    ],
-  },
-  drift: {
-    name: 'Drifting Home',
-    lead: [
-      [523.25, 0.0, 0.22], [659.25, 0.26, 0.22], [783.99, 0.52, 0.3],
-      [659.25, 0.88, 0.16], [587.33, 1.06, 0.16], [523.25, 1.24, 0.5],
-    ],
-    bass: [
-      [130.81, 0.0, 0.5], [174.61, 0.52, 0.48], [98.0, 1.06, 0.3], [130.81, 1.24, 0.5],
-    ],
-  },
-  klaxon: {
-    name: 'Klaxon Bounce',
-    lead: [
-      [880.0, 0.0, 0.09], [1046.5, 0.11, 0.09], [1318.51, 0.22, 0.09],
-      [1760.0, 0.33, 0.16], [1318.51, 0.55, 0.09], [1760.0, 0.66, 0.24],
-    ],
-    bass: [
-      [110.0, 0.0, 0.3], [82.41, 0.33, 0.3], [110.0, 0.66, 0.28],
-    ],
-  },
-}
-
-function jingleDuration(j: Jingle): number {
-  return Math.max(...[...j.lead, ...j.bass].map(([, s, d]) => s + d))
-}
-
-function playJingle(ctx: AudioContext | null, id: string, out?: AudioNode) {
-  if (!ctx) return
-  const jingle = JINGLES[id] ?? JINGLES.sunrise
-  const dest = out ?? ctx.destination
-  const t0 = ctx.currentTime + 0.02
-  const voice = (type: OscillatorType, notes: Notes, level: number, detune = 0) => {
-    for (const [freq, start, dur] of notes) {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = type
-      osc.frequency.value = freq
-      osc.detune.value = detune
-      gain.gain.setValueAtTime(0.0001, t0 + start)
-      gain.gain.exponentialRampToValueAtTime(level, t0 + start + 0.015)
-      gain.gain.setValueAtTime(level, t0 + start + Math.max(0.02, dur - 0.05))
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur)
-      osc.connect(gain).connect(dest)
-      osc.start(t0 + start)
-      osc.stop(t0 + start + dur + 0.02)
-    }
-  }
-  voice('square', jingle.lead, 0.032)
-  voice('square', jingle.lead, 0.017, 8)
-  voice('triangle', jingle.bass, 0.065)
-}
-
-/** Preview at the ring's plateau volume so what you hear is what you get. */
-function previewJingle(ctx: AudioContext | null, id: string) {
-  if (!ctx) return
-  const gain = ctx.createGain()
-  gain.gain.value = RING_PLATEAU
-  gain.connect(ctx.destination)
-  playJingle(ctx, id, gain)
-}
-
-/** Max ring volume — the 5s fade-in lands here, not at full scale. */
+/** Max ring volume: the 5s fade-in lands here, not at full scale. */
 const RING_PLATEAU = 0.55
 
 function loadAlarm(): number | null {
@@ -177,8 +97,8 @@ export function SegClock() {
   const [custom, setCustom] = useState('')
   /** 0..1 wobble intensity during the 5s wind-up before the alarm fires */
   const [warm, setWarm] = useState<number | null>(null)
-  const [jingle, setJingle] = useState(() => localStorage.getItem(JINGLE_KEY) ?? 'sunrise')
   const audioRef = useRef<AudioContext | null>(null)
+  const bufferRef = useRef<AudioBuffer | null>(null)
   const alarmRef = useRef(alarmAt)
   alarmRef.current = alarmAt
 
@@ -186,10 +106,6 @@ export function SegClock() {
     if (alarmAt) localStorage.setItem(ALARM_KEY, String(alarmAt))
     else localStorage.removeItem(ALARM_KEY)
   }, [alarmAt])
-
-  useEffect(() => {
-    localStorage.setItem(JINGLE_KEY, jingle)
-  }, [jingle])
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -212,34 +128,52 @@ export function SegClock() {
     return () => clearInterval(t)
   }, [])
 
-  // ring: the chosen jingle on loop, fading in from near-silence to full
+  // ring: the alarm sample on loop, fading in from near-silence to full
   // volume over the first 5 seconds; give up after 90s
   useEffect(() => {
     if (!ringing) return
     const ctx = audioRef.current
-    let master: GainNode | null = null
-    if (ctx) {
-      master = ctx.createGain()
-      const t = ctx.currentTime
-      master.gain.setValueAtTime(0.03, t)
-      master.gain.exponentialRampToValueAtTime(RING_PLATEAU, t + 5)
-      master.connect(ctx.destination)
-    }
-    const play = () => playJingle(audioRef.current, jingle, master ?? undefined)
-    play()
-    const rep = setInterval(play, jingleDuration(JINGLES[jingle] ?? JINGLES.sunrise) * 1000 + 900)
+    const buffer = bufferRef.current
+    if (!ctx || !buffer) return
+    const master = ctx.createGain()
+    const t = ctx.currentTime
+    master.gain.setValueAtTime(0.03, t)
+    master.gain.exponentialRampToValueAtTime(RING_PLATEAU, t + 5)
+    master.connect(ctx.destination)
+    const src = ctx.createBufferSource()
+    src.buffer = buffer
+    src.loop = true
+    src.connect(master)
+    src.start()
     const stop = setTimeout(() => setRinging(false), 90_000)
     return () => {
-      clearInterval(rep)
       clearTimeout(stop)
-      master?.disconnect()
+      try {
+        src.stop()
+      } catch {
+        // already stopped
+      }
+      src.disconnect()
+      master.disconnect()
     }
-  }, [ringing, jingle])
+  }, [ringing])
 
-  // arm the audio context while we still have a user gesture
+  // arm the audio context while we still have a user gesture, and decode the
+  // alarm sample now so it's ready to loop the moment the alarm fires
   const ensureAudio = () => {
-    audioRef.current ??= new AudioContext()
-    void audioRef.current.resume()
+    const ctx = (audioRef.current ??= new AudioContext())
+    void ctx.resume()
+    if (!bufferRef.current) {
+      fetch(ALARM_SRC)
+        .then((r) => r.arrayBuffer())
+        .then((raw) => ctx.decodeAudioData(raw))
+        .then((decoded) => {
+          bufferRef.current = decoded
+        })
+        .catch(() => {
+          // no audio: the overlay still fires, just silently
+        })
+    }
   }
 
   const arm = (at: number) => {
@@ -307,22 +241,6 @@ export function SegClock() {
             >
               set
             </button>
-          </div>
-          <div className="panel-eyebrow">jingle · click to preview</div>
-          <div className="alarm-jingles">
-            {Object.entries(JINGLES).map(([id, j]) => (
-              <button
-                key={id}
-                className={`use-default jingle-opt${jingle === id ? ' sel' : ''}`}
-                onClick={() => {
-                  setJingle(id)
-                  ensureAudio()
-                  previewJingle(audioRef.current, id)
-                }}
-              >
-                {j.name}
-              </button>
-            ))}
           </div>
         </div>
       )}

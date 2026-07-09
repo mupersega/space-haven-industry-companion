@@ -593,17 +593,15 @@ body {
   display: flex;
   gap: 6px;
 }
-.alarm-jingles {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* stretch the presets so the row fills the popover and its right edge lines
+   up with the custom row below */
+.alarm-presets .use-default {
+  flex: 1;
 }
-.jingle-opt {
-  text-align: left;
-}
-.jingle-opt.sel {
-  color: var(--amber);
-  border-color: var(--amber);
+/* the flex column's own gap already spaces the eyebrow; drop its margin so the
+   space below ALARM isn't doubled */
+.alarm-pop .panel-eyebrow {
+  margin-bottom: 0;
 }
 /* classic alarm-clock wobble, intensity via --wob (ramps over final 5s) */
 @media (prefers-reduced-motion: no-preference) {
@@ -630,7 +628,8 @@ body {
   align-items: center;
 }
 .alarm-time {
-  width: 96px;
+  flex: 1;
+  min-width: 0;
   color: var(--ink);
   color-scheme: dark;
 }
@@ -948,6 +947,27 @@ body {
   color: var(--dim);
   font-size: 11px;
   margin-top: 1px;
+}
+/* facility-mode alarm: the facility line goes bold (already switched to rose
+   inline) as the callout, with a small rose info icon beside it. The tooltip and
+   the help cursor live on the icon only, not the static text. */
+.node-eyebrow.facility-missing,
+.node-meta.facility-missing {
+  font-weight: 700;
+}
+.node-unbuilt-info {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 5px;
+  vertical-align: -2px;
+  cursor: help;
+  opacity: 0.85;
+}
+.node-unbuilt-info:hover {
+  opacity: 1;
+}
+.node-unbuilt-info svg {
+  display: block;
 }
 .node-rows {
   margin-top: 8px;
@@ -2000,9 +2020,14 @@ body {
   color: var(--ink);
   font-size: 15px;
   line-height: 1.65;
+  /* a tight dark outline keeps the copy legible over busy scene detail
+     without a panel: four hard 1px offsets, then a soft halo to seal it. */
   text-shadow:
-    0 1px 3px rgba(5, 9, 18, 0.95),
-    0 0 16px rgba(5, 9, 18, 0.8);
+    -1px -1px 0 rgba(5, 9, 18, 0.92),
+    1px -1px 0 rgba(5, 9, 18, 0.92),
+    -1px 1px 0 rgba(5, 9, 18, 0.92),
+    1px 1px 0 rgba(5, 9, 18, 0.92),
+    0 0 6px rgba(5, 9, 18, 0.9);
 }
 .welcome-warning strong {
   color: var(--amber);
@@ -2010,6 +2035,12 @@ body {
 .welcome-soft {
   color: var(--dim);
   font-size: 13.5px;
+  text-shadow:
+    -1px -1px 0 rgba(5, 9, 18, 0.9),
+    1px -1px 0 rgba(5, 9, 18, 0.9),
+    -1px 1px 0 rgba(5, 9, 18, 0.9),
+    1px 1px 0 rgba(5, 9, 18, 0.9),
+    0 0 6px rgba(5, 9, 18, 0.85);
 }
 .welcome-actions {
   margin-top: 10px;
@@ -2105,7 +2136,12 @@ body {
   color: var(--dim);
   font-size: 11.5px;
   line-height: 1.6;
-  text-shadow: 0 1px 3px rgba(5, 9, 18, 0.95);
+  text-shadow:
+    -1px -1px 0 rgba(5, 9, 18, 0.9),
+    1px -1px 0 rgba(5, 9, 18, 0.9),
+    -1px 1px 0 rgba(5, 9, 18, 0.9),
+    1px 1px 0 rgba(5, 9, 18, 0.9),
+    0 0 5px rgba(5, 9, 18, 0.85);
 }
 .welcome-enter {
   background: var(--amber);

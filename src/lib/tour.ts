@@ -140,7 +140,7 @@ export function startTour(opts: { guided?: boolean } = {}) {
         popover: {
           title: 'Ship time',
           description:
-            'Your local time, bridge style. Click the bell to set a quick alarm: three chiptune jingles, gentle fade-in. Fly safe out there.',
+            'Your local time. Click the bell to set an alarm, even spacefarers gotta poop!',
           side: 'left',
         },
       },

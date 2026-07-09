@@ -351,9 +351,6 @@ ok('clock has lit segments', (await page.locator('.seg.on').count()) > 0)
 // --- 18. Alarm ---
 await page.locator('.alarm-chip').click()
 ok('alarm popover opens', (await page.locator('.alarm-pop').count()) === 1)
-ok('three jingle options', (await page.locator('.jingle-opt').count()) === 3)
-await page.locator('.jingle-opt', { hasText: 'Klaxon Bounce' }).click()
-ok('jingle selection persists', (await page.evaluate(() => localStorage.getItem('shc-jingle-v1'))) === 'klaxon')
 await page.locator('.alarm-presets button', { hasText: '+5m' }).click()
 await page.waitForTimeout(200)
 const chipTitle = (await page.locator('.alarm-chip').getAttribute('data-tip')) ?? ''

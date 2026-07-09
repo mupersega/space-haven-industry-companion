@@ -281,12 +281,12 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
         <div className="welcome-sub">Production Ledger</div>
         <p className="welcome-warning">
           <strong>Read this before you continue.</strong> This tool lays the game's economy bare. Exact
-          recipes, true trade values, and the margin on every rifle you will ever fabricate. These are
-          things the game wants you to work out for yourself, somewhere out in the black.
+          recipes, true trade values, and the margin on every item you will fabricate. These are
+          learnings the game wants you to discover for yourself, somewhere out in the blackness.
         </p>
         <p className="welcome-warning welcome-soft">
           If you are new to the game, please consider holding off until the initial wonder has abated.
-          This site will be here when you are ready.
+          This tool will be here when you are ready.
         </p>
         <div className="welcome-actions">
           <button className="welcome-enter" onClick={accept}>
