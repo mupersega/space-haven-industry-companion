@@ -941,9 +941,15 @@ body {
   object-fit: contain;
 }
 
-.reset-btn {
+.foot-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   margin-top: 10px;
-  width: 100%;
+}
+.reset-btn {
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: 1px solid var(--line-strong);
   border-radius: 4px;
@@ -958,6 +964,28 @@ body {
 .reset-btn:hover {
   color: var(--rose);
   border-color: var(--rose);
+}
+/* the tip jar: a nondescript coffee mark in the sidebar's bottom-right corner.
+   Sits dim and quiet until you find it, then warms to amber (the economy hue). */
+.kofi-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  padding: 0 6px;
+  color: var(--dim);
+  line-height: 0;
+  opacity: 0.45;
+  transition:
+    color 140ms ease,
+    opacity 140ms ease;
+}
+.kofi-link:hover,
+.kofi-link:focus-visible {
+  color: var(--amber);
+  opacity: 1;
+  outline: none;
 }
 
 /* ---- Graph nodes ---- */
@@ -2259,6 +2287,17 @@ body {
     1px 1px 0 rgba(5, 9, 18, 0.9),
     0 0 5px rgba(5, 9, 18, 0.85);
 }
+/* the tip-jar mug sitting at the tail of the fine print: a small left gap off
+   the copy, a legibility shadow, and a hair more presence than the dim text. */
+.welcome-legal .kofi-inline {
+  padding: 0 0 0 5px;
+  opacity: 0.85;
+  filter: drop-shadow(0 1px 2px rgba(5, 9, 18, 0.95));
+}
+.welcome-legal .kofi-inline:hover,
+.welcome-legal .kofi-inline:focus-visible {
+  opacity: 1;
+}
 .welcome-enter {
   background: var(--amber);
   border: none;
@@ -2297,6 +2336,45 @@ body {
   from {
     opacity: 0;
     transform: translateY(14px);
+  }
+}
+/* Phones: the gate is bottom-anchored (align-items: flex-end) and clips its
+   overflow, so the desktop 56/64px padding made the copy stack taller than a
+   small viewport and pushed the top of it — the Space Haven logo — off-screen,
+   leaving PRODUCTION LEDGER jammed against the top edge. Compact the padding
+   and type so the whole plate fits an iPhone SE, and cap the height so it
+   scrolls rather than clips the logo on anything shorter. */
+@media (max-width: 640px) {
+  .welcome-content {
+    padding: 24px 20px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    gap: 11px;
+    max-height: 100dvh;
+    overflow-y: auto;
+  }
+  .welcome-logo {
+    width: 220px;
+    max-width: 52vw;
+  }
+  .welcome-sub {
+    font-size: 15px;
+    letter-spacing: 0.26em;
+  }
+  .welcome-warning {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .welcome-soft {
+    font-size: 12.5px;
+  }
+  .welcome-actions {
+    margin-top: 6px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .welcome-legal {
+    margin-top: 12px;
+    font-size: 11px;
   }
 }
 

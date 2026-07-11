@@ -6,6 +6,7 @@ import { SceneTuner } from './SceneTuner'
 import { ShipSprite, loadImage } from './ShipSprite'
 import { SpaceBackdrop } from './SpaceBackdrop'
 import { DEFAULT_SCENE, type SceneParams } from '../lib/spaceRender'
+import { KofiLink } from './KofiLink'
 
 // Two tiers of acknowledgment. Boarding always acks the current browser
 // session (sessionStorage), so a refresh doesn't re-gate. "Remember for
@@ -305,7 +306,8 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
         <p className="welcome-legal">
           This is an unofficial fan project, not affiliated with or endorsed by Bugbyte Ltd. Space Haven
           and all artwork and game assets shown here are the property of Bugbyte Ltd. This site is free
-          and exists to enhance the enjoyment of the game.
+          and exists to enhance the enjoyment of the game. Enjoying the tool?
+          <KofiLink tip="Buy me a coffee" className="kofi-inline" />
         </p>
       </div>
     </div>

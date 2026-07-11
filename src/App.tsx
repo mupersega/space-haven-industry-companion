@@ -27,6 +27,7 @@ import { NumberField } from './components/NumberField'
 import { Palette } from './components/Palette'
 import { SegClock } from './components/SegClock'
 import { WelcomeGate, welcomeAcknowledged } from './components/WelcomeGate'
+import { KofiLink } from './components/KofiLink'
 import { startTour, tourSeen } from './lib/tour'
 import { WorthModal } from './components/WorthModal'
 
@@ -591,15 +592,18 @@ export default function App() {
           <p className="hint foot-legal">
             Unofficial fan project. Space Haven and all game assets are the property of Bugbyte Ltd.
           </p>
-          <button
-            className="reset-btn"
-            onClick={() => {
-              localStorage.removeItem(STORAGE_KEY)
-              setState(DEFAULT_STATE)
-            }}
-          >
-            Reset prices &amp; orders
-          </button>
+          <div className="foot-actions">
+            <button
+              className="reset-btn"
+              onClick={() => {
+                localStorage.removeItem(STORAGE_KEY)
+                setState(DEFAULT_STATE)
+              }}
+            >
+              Reset prices &amp; orders
+            </button>
+            <KofiLink />
+          </div>
         </footer>
       </aside>
 
