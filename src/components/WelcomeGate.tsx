@@ -306,7 +306,7 @@ export function WelcomeGate({ onEnter }: { onEnter: () => void }) {
         <p className="welcome-legal">
           This is an unofficial fan project, not affiliated with or endorsed by Bugbyte Ltd. Space Haven
           and all artwork and game assets shown here are the property of Bugbyte Ltd. This site is free
-          and exists to enhance the enjoyment of the game. Enjoying the tool?
+          and exists to enhance the enjoyment of the game, but if you're enjoying the tool...
           <KofiLink tip="Buy me a coffee" className="kofi-inline" />
         </p>
       </div>
