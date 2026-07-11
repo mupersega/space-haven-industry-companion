@@ -43,7 +43,7 @@ export function WorthModal({ materialId, prices, buySet, onClose }: WorthModalPr
         {lines.length === 0 ? (
           <p className="hint">
             {item.notes ??
-              'No production chain consumes this item — its worth is simply whatever traders will pay for it.'}
+              'No production chain consumes this item, so its worth is simply whatever traders will pay for it.'}
           </p>
         ) : (
           <>
@@ -77,7 +77,7 @@ export function WorthModal({ materialId, prices, buySet, onClose }: WorthModalPr
               </tbody>
             </table>
             <p className="hint">
-              These are ceilings, not offers — they ignore crafting time, crew labor and how much traders
+              These are ceilings, not offers. They ignore crafting time, crew labor and how much traders
               will actually buy. A worth far above the market price means the material is the cheap part of
               the chain, not that you should pay that much.
             </p>

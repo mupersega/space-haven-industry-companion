@@ -54,7 +54,7 @@ const defs: ItemDef[] = [
   { id: 'raw-chemicals', name: 'Raw Chemicals', category: 'raw', defaultPrice: 100 },
   {
     id: 'basic-ore', name: 'Basic Ore', category: 'raw', defaultPrice: 40,
-    notes: 'Unrefined asteroid rock that shows up in trade holds. Not a standard production input — you normally mine finished resources directly.',
+    notes: 'Unrefined asteroid rock that shows up in trade holds. Not a standard production input. You normally mine finished resources directly.',
   },
   {
     id: 'exotic-ore', name: 'Exotic Ore', category: 'raw', defaultPrice: 50,
@@ -88,7 +88,7 @@ const defs: ItemDef[] = [
   { id: 'artificial-meat', name: 'Artificial Meat', category: 'food', defaultPrice: 375 },
   {
     id: 'monster-meat', name: 'Monster Meat', category: 'food', defaultPrice: 40,
-    notes: 'Butchered from dead space monsters — loot, not farmed. Feeds the crew or sells like any other meat.',
+    notes: 'Butchered from dead space monsters (loot, not farmed). Feeds the crew or sells like any other meat.',
   },
   {
     id: 'human-meat', name: 'Human Meat', category: 'food', defaultPrice: 75,
@@ -106,15 +106,15 @@ const defs: ItemDef[] = [
   // ---- Trade / loot only (no crafting recipe in game) ----
   {
     id: 'quantronics', name: 'Quantronics Component', category: 'trade', defaultPrice: 750,
-    notes: 'No use in the current game version — loot it from robot ships, sell it, or stockpile for a future update.',
+    notes: 'No use in the current game version. Loot it from robot ships, sell it, or stockpile for a future update.',
   },
   {
     id: 'superblock', name: 'Superblock', category: 'trade', defaultPrice: 700,
-    notes: 'Not craftable yet — game files hint at a future recipe (0.5 Techblock + 0.33 Energy Block + 1 Quantronics).',
+    notes: 'Not craftable yet. Game files hint at a future recipe (0.5 Techblock + 0.33 Energy Block + 1 Quantronics).',
   },
   {
     id: 'csp', name: 'CSP', category: 'trade', defaultPrice: 1100,
-    notes: 'Cloud Substance Pills — contraband to the Military Alliance. Pure trade good; buy low from outlaws, sell high where it is legal.',
+    notes: 'Cloud Substance Pills, contraband to the Military Alliance. Pure trade good; buy low from outlaws, sell high where it is legal.',
   },
 
   // ---- Salvage (derelict loot, recycled at the Recycler; outputs per 1 unit) ----
@@ -176,7 +176,7 @@ const defs: ItemDef[] = [
   {
     id: 'alien-corpse', name: 'Alien Corpse', category: 'corpse',
     salvage: [{ itemId: 'monster-meat', qty: 3.5 }],
-    notes: 'Butchered at an Autopsy Table into ~3–4 Monster Meat, or composted into Bio Matter. Free combat loot — no trade value of its own.',
+    notes: 'Butchered at an Autopsy Table into ~3–4 Monster Meat, or composted into Bio Matter. Free combat loot, no trade value of its own.',
   },
   {
     id: 'human-corpse', name: 'Human Corpse', category: 'corpse',
@@ -185,7 +185,7 @@ const defs: ItemDef[] = [
   },
   {
     id: 'android-corpse', name: 'Android Corpse', category: 'corpse',
-    notes: 'No yield — an android corpse can’t be butchered or composted, so most players just eject it. Mechanical drone wrecks are different: those leave Rubble, which recycles into Steel Plates.',
+    notes: 'No yield. An android corpse can’t be butchered or composted, so most players just eject it. Mechanical drone wrecks are different: those leave Rubble, which recycles into Steel Plates.',
   },
 
   { id: 'human-organs', name: 'Human Organs', category: 'trade', defaultPrice: 50 },

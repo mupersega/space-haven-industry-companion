@@ -532,8 +532,8 @@ export default function App() {
           {totalProfit !== undefined && (
             <div className={`verdict ${totalProfit >= 0 ? 'good' : 'bad'}`}>
               {totalProfit >= 0
-                ? `Worth crafting — ${fmtCr(totalProfit)} cr margin (${totalSale! > 0 ? fmtPct(totalProfit / totalSale!) : '—'})`
-                : `Not worth it — ${fmtCr(-totalProfit)} cr under water`}
+                ? `Worth crafting · ${fmtCr(totalProfit)} cr margin (${totalSale! > 0 ? fmtPct(totalProfit / totalSale!) : '—'})`
+                : `Not worth it · ${fmtCr(-totalProfit)} cr under water`}
             </div>
           )}
           {multiplier !== undefined && (
@@ -577,7 +577,7 @@ export default function App() {
           </table>
           {totalSale !== undefined && (
             <p className="hint">
-              Max buy = highest unit price for that input — with every other price as assumed — before total
+              Max buy = highest unit price for that input, with every other price as assumed, before total
               crafted cost exceeds total sale value.
             </p>
           )}

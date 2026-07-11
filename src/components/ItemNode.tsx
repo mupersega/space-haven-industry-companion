@@ -170,7 +170,7 @@ export function ItemNode({ data }: NodeProps<ItemFlowNode>) {
         {isMarket && item.notes && <p className="root-notes">{item.notes}</p>}
         {data.yieldPerUnit !== undefined && (
           <div className={`root-verdict ${data.yieldPerUnit >= data.unitCost ? 'good' : 'bad'}`}>
-            ♻ yields {fmtCr(data.yieldPerUnit)} cr/unit —{' '}
+            ♻ yields {fmtCr(data.yieldPerUnit)} cr/unit ·{' '}
             {data.yieldPerUnit >= data.unitCost
               ? `${salvageVerb}, +${fmtCr(data.yieldPerUnit - data.unitCost)} cr/unit`
               : `${fmtCr(data.unitCost - data.yieldPerUnit)} cr/unit under buy price`}
